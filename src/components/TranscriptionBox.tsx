@@ -2,19 +2,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mic, MicOff, Play, StopCircle } from 'lucide-react';
+import { Mic, Play, StopCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TranscriptionBoxProps {
   onTranscriptionComplete?: (text: string) => void;
   title?: string;
   description?: string;
+  isProcessing?: boolean;
 }
 
 const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({ 
   onTranscriptionComplete,
   title = "Record your voice",
   description = "Speak clearly into your microphone",
+  isProcessing = false
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState("");
@@ -146,7 +148,11 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
   };
   
   return (
-    <Card className={cn("glass-panel", isRecording && "ring-2 ring-primary")}>
+    <Card className={cn(
+      "glass-panel", 
+      isRecording && "ring-2 ring-primary",
+      isProcessing && "ring-2 ring-yellow-500"
+    )}>
       <CardHeader className="pb-0">
         <CardTitle className="text-xl font-display">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -155,13 +161,21 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
         <div 
           className={cn(
             "min-h-40 p-4 rounded-xl border border-border bg-background/50",
-            isRecording && "animate-pulse-subtle ring-1 ring-primary"
+            isRecording && "animate-pulse-subtle ring-1 ring-primary",
+            isProcessing && "ring-1 ring-yellow-500"
           )}
         >
           {transcription || interimTranscription ? (
             <div>
               <p className="mb-2 text-foreground">{transcription}</p>
               <p className="text-muted-foreground italic">{interimTranscription}</p>
+              
+              {isProcessing && (
+                <div className="mt-4 flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing your speech...
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -175,6 +189,7 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
           variant={isRecording ? "destructive" : "default"}
           className={cn("gap-2", isRecording && "animate-pulse")}
           onClick={toggleRecording}
+          disabled={isProcessing}
         >
           {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           {isRecording ? "Stop Recording" : "Start Recording"}
@@ -182,7 +197,7 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
         
         <Button 
           variant="outline" 
-          disabled={!transcription && !interimTranscription}
+          disabled={(!transcription && !interimTranscription) || isProcessing}
           onClick={() => {
             setTranscription("");
             setInterimTranscription("");

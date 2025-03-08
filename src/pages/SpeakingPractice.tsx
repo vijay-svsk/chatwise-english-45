@@ -6,10 +6,15 @@ import TranscriptionBox from '@/components/TranscriptionBox';
 import AIFeedback, { AIFeedbackResult } from '@/components/AIFeedback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { mockAnalyzeLanguageAPI } from '@/mock-api/analyzeLanguage';
+import { processAnalysisToFeedback } from '@/services/languageAnalysisService';
+import { useToast } from '@/hooks/use-toast';
 
 const SpeakingPractice = () => {
   const [transcribedText, setTranscribedText] = useState('');
   const [feedback, setFeedback] = useState<AIFeedbackResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { toast } = useToast();
   
   const mockUser = {
     name: 'Sarah Johnson',
@@ -17,8 +22,33 @@ const SpeakingPractice = () => {
     avatar: 'https://i.pravatar.cc/300?img=47'
   };
   
-  const handleTranscriptionComplete = (text: string) => {
+  const handleTranscriptionComplete = async (text: string) => {
     setTranscribedText(text);
+    
+    // Automatically analyze longer transcriptions
+    if (text.split(' ').length > 10) {
+      try {
+        setIsAnalyzing(true);
+        toast({
+          title: "Auto-analyzing",
+          description: "Analyzing your speech with AI...",
+        });
+        
+        const analysis = await mockAnalyzeLanguageAPI({ text });
+        const feedbackResult = processAnalysisToFeedback(analysis);
+        
+        setFeedback(feedbackResult);
+      } catch (error) {
+        console.error("Error analyzing speech:", error);
+        toast({
+          title: "Analysis Error",
+          description: "Could not analyze your speech. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }
   };
   
   const handleFeedbackComplete = (feedbackResult: AIFeedbackResult) => {
@@ -72,8 +102,14 @@ const SpeakingPractice = () => {
               
               <TabsContent value="practice" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <TranscriptionBox onTranscriptionComplete={handleTranscriptionComplete} />
-                  <AIFeedback text={transcribedText} onFeedbackComplete={handleFeedbackComplete} />
+                  <TranscriptionBox 
+                    onTranscriptionComplete={handleTranscriptionComplete} 
+                    isProcessing={isAnalyzing}
+                  />
+                  <AIFeedback 
+                    text={transcribedText} 
+                    onFeedbackComplete={handleFeedbackComplete} 
+                  />
                 </div>
                 
                 {feedback && (

@@ -10,6 +10,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SpeakingPractice from "./pages/SpeakingPractice";
+import ListeningPractice from "./pages/ListeningPractice";
+import VocabularyBuilding from "./pages/VocabularyBuilding";
+import Conversation from "./pages/Conversation";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +28,9 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/practice/speaking" element={<SpeakingPractice />} />
+          <Route path="/practice/listening" element={<ListeningPractice />} />
+          <Route path="/vocabulary" element={<VocabularyBuilding />} />
+          <Route path="/practice/conversation" element={<Conversation />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

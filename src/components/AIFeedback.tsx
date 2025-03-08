@@ -10,6 +10,7 @@ interface AIFeedbackProps {
   onFeedbackComplete?: (feedback: AIFeedbackResult) => void;
   title?: string;
   description?: string;
+  customFeedback?: AIFeedbackResult;
 }
 
 export interface AIFeedbackResult {
@@ -30,10 +31,11 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
   text,
   onFeedbackComplete,
   title = "AI Feedback",
-  description = "Get analysis and improvements for your speech"
+  description = "Get analysis and improvements for your speech",
+  customFeedback
 }) => {
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState<AIFeedbackResult | null>(null);
+  const [feedback, setFeedback] = useState<AIFeedbackResult | null>(customFeedback || null);
   const [error, setError] = useState<string | null>(null);
   
   const generateFeedback = async () => {
@@ -125,67 +127,75 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                <div>
-                  <div className="text-sm font-medium mb-1">Pronunciation</div>
-                  <div className="flex items-center">
-                    <div className="w-full bg-secondary rounded-full h-2 mr-2">
-                      <div 
-                        className="bg-primary rounded-full h-2" 
-                        style={{ width: `${feedback.pronunciation}%` }}
-                      />
+                {feedback.pronunciation > 0 && (
+                  <div>
+                    <div className="text-sm font-medium mb-1">Pronunciation</div>
+                    <div className="flex items-center">
+                      <div className="w-full bg-secondary rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-primary rounded-full h-2" 
+                          style={{ width: `${feedback.pronunciation}%` }}
+                        />
+                      </div>
+                      <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.pronunciation))}>
+                        {feedback.pronunciation}
+                      </span>
                     </div>
-                    <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.pronunciation))}>
-                      {feedback.pronunciation}
-                    </span>
                   </div>
-                </div>
+                )}
                 
-                <div>
-                  <div className="text-sm font-medium mb-1">Grammar</div>
-                  <div className="flex items-center">
-                    <div className="w-full bg-secondary rounded-full h-2 mr-2">
-                      <div 
-                        className="bg-primary rounded-full h-2" 
-                        style={{ width: `${feedback.grammar}%` }}
-                      />
+                {feedback.grammar > 0 && (
+                  <div>
+                    <div className="text-sm font-medium mb-1">Grammar</div>
+                    <div className="flex items-center">
+                      <div className="w-full bg-secondary rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-primary rounded-full h-2" 
+                          style={{ width: `${feedback.grammar}%` }}
+                        />
+                      </div>
+                      <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.grammar))}>
+                        {feedback.grammar}
+                      </span>
                     </div>
-                    <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.grammar))}>
-                      {feedback.grammar}
-                    </span>
                   </div>
-                </div>
+                )}
               </div>
               
               <div className="space-y-4">
-                <div>
-                  <div className="text-sm font-medium mb-1">Vocabulary</div>
-                  <div className="flex items-center">
-                    <div className="w-full bg-secondary rounded-full h-2 mr-2">
-                      <div 
-                        className="bg-primary rounded-full h-2" 
-                        style={{ width: `${feedback.vocabulary}%` }}
-                      />
+                {feedback.vocabulary > 0 && (
+                  <div>
+                    <div className="text-sm font-medium mb-1">Vocabulary</div>
+                    <div className="flex items-center">
+                      <div className="w-full bg-secondary rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-primary rounded-full h-2" 
+                          style={{ width: `${feedback.vocabulary}%` }}
+                        />
+                      </div>
+                      <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.vocabulary))}>
+                        {feedback.vocabulary}
+                      </span>
                     </div>
-                    <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.vocabulary))}>
-                      {feedback.vocabulary}
-                    </span>
                   </div>
-                </div>
+                )}
                 
-                <div>
-                  <div className="text-sm font-medium mb-1">Fluency</div>
-                  <div className="flex items-center">
-                    <div className="w-full bg-secondary rounded-full h-2 mr-2">
-                      <div 
-                        className="bg-primary rounded-full h-2" 
-                        style={{ width: `${feedback.fluency}%` }}
-                      />
+                {feedback.fluency > 0 && (
+                  <div>
+                    <div className="text-sm font-medium mb-1">Fluency</div>
+                    <div className="flex items-center">
+                      <div className="w-full bg-secondary rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-primary rounded-full h-2" 
+                          style={{ width: `${feedback.fluency}%` }}
+                        />
+                      </div>
+                      <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.fluency))}>
+                        {feedback.fluency}
+                      </span>
                     </div>
-                    <span className={cn("text-sm font-semibold", getFeedbackColor(feedback.fluency))}>
-                      {feedback.fluency}
-                    </span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
             
@@ -212,27 +222,42 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
                 ))}
               </ul>
             </div>
+            
+            {feedback.corrections.some(c => c.original || c.corrected) && (
+              <div>
+                <h4 className="font-semibold mb-2">Corrections</h4>
+                <div className="space-y-2">
+                  {feedback.corrections.map((correction, i) => (
+                    <div key={i} className="text-sm">
+                      {correction.explanation}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
       <CardFooter>
-        <Button 
-          onClick={generateFeedback} 
-          disabled={loading || !text.trim()} 
-          className="w-full gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Analyzing...
-            </>
-          ) : (
-            <>
-              <Lightbulb className="h-4 w-4" />
-              Generate Feedback
-            </>
-          )}
-        </Button>
+        {!customFeedback && (
+          <Button 
+            onClick={generateFeedback} 
+            disabled={loading || !text.trim()} 
+            className="w-full gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Lightbulb className="h-4 w-4" />
+                Generate Feedback
+              </>
+            )}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

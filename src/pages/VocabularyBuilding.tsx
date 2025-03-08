@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -386,7 +385,12 @@ const VocabularyBuilding = () => {
                       <div className="text-muted-foreground mb-2">You haven't saved any words yet.</div>
                       <Button 
                         variant="outline" 
-                        onClick={() => document.querySelector('[data-value="explore"]')?.click()}
+                        onClick={() => {
+                          const exploreTab = document.querySelector('[data-value="explore"]');
+                          if (exploreTab instanceof HTMLElement) {
+                            exploreTab.click();
+                          }
+                        }}
                       >
                         Browse vocabulary
                       </Button>

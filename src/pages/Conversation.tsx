@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -377,7 +376,10 @@ const Conversation = () => {
                     <Card key={topic.id} className="glass-panel hover:shadow-lg transition-all cursor-pointer"
                       onClick={() => {
                         selectTopic(topic.id);
-                        document.querySelector('[data-value="chat"]')?.click();
+                        const chatTab = document.querySelector('[data-value="chat"]');
+                        if (chatTab instanceof HTMLElement) {
+                          chatTab.click();
+                        }
                       }}
                     >
                       <CardHeader>

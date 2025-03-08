@@ -29,7 +29,7 @@ const SpeakingPractice = () => {
     {
       id: 'introduction',
       title: 'Self Introduction',
-      prompt: 'Introduce yourself. Talk about your name, where you're from, your job or studies, and your hobbies.'
+      prompt: 'Introduce yourself. Talk about your name, where you\'re from, your job or studies, and your hobbies.'
     },
     {
       id: 'describe-home',
@@ -39,7 +39,7 @@ const SpeakingPractice = () => {
     {
       id: 'favorite-food',
       title: 'Favorite Food',
-      prompt: 'Talk about your favorite food. Describe what it is, why you like it, and how it's prepared.'
+      prompt: 'Talk about your favorite food. Describe what it is, why you like it, and how it\'s prepared.'
     },
     {
       id: 'travel',

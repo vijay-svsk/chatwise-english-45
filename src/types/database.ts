@@ -43,3 +43,11 @@ export interface LeaderboardEntry {
   points: number;
   level: number;
 }
+
+// Define correction interface for AIFeedback component
+export interface FeedbackCorrection {
+  original: string;
+  corrected: string;
+  explanation: string;
+  rule?: string;
+}

@@ -1,4 +1,3 @@
-
 import { AIFeedbackResult } from '@/components/AIFeedback';
 import { GrammarCorrection } from '@/types/database';
 
@@ -27,7 +26,6 @@ export interface LanguageAnalysisResponse {
   strengths: string[];
 }
 
-// Common grammar rules for explanations
 const grammarRules = [
   {
     name: "Subject-Verb Agreement",
@@ -77,12 +75,8 @@ const grammarRules = [
  * what we expect from the API
  */
 export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise<LanguageAnalysisResponse> => {
-  // In a real implementation, we'd make an API call to our backend
-  
-  // For now, we'll simulate the API response
   const { text, detailed = false } = request;
   
-  // Analyze text for common errors (simplified)
   const commonErrors = [
     { pattern: " i ", type: "grammar", fix: " I ", rule: "Capitalization" },
     { pattern: "your welcome", type: "grammar", fix: "you're welcome", rule: "Possessive vs. Contraction" },
@@ -96,17 +90,13 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     { pattern: "i seen", type: "grammar", fix: "I saw", rule: "Past Participle vs. Simple Past" },
   ];
   
-  // Extract sentences
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
   
-  // Generate corrections based on found errors
   const corrections = [];
   
-  // Check each sentence for errors
   for (const sentence of sentences) {
     let foundError = false;
     
-    // Check for common errors
     for (const error of commonErrors) {
       if (sentence.toLowerCase().includes(error.pattern.toLowerCase())) {
         const ruleName = error.rule;
@@ -125,13 +115,12 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
       }
     }
     
-    // Check for grammar rule patterns if no common error was found
     if (!foundError && detailed) {
       for (const rule of grammarRules) {
         if (rule.pattern.test(sentence)) {
           corrections.push({
             original: sentence.trim(),
-            corrected: sentence.trim(), // We don't have automatic correction for these patterns
+            corrected: sentence.trim(),
             explanation: rule.explanation,
             rule: rule.name
           });
@@ -143,7 +132,6 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     }
   }
   
-  // If we don't have any corrections but have text, add some general feedback
   if (corrections.length === 0 && sentences.length > 0) {
     const randomSentence = sentences[Math.floor(Math.random() * sentences.length)].trim();
     corrections.push({
@@ -154,12 +142,10 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     });
   }
   
-  // Mock scores with some variance based on text
   const wordCount = text.split(/\s+/).filter(w => w.trim().length > 0).length;
   const complexWords = text.split(/\s+/).filter(w => w.length > 6).length;
   const complexityRatio = wordCount > 0 ? complexWords / wordCount : 0;
   
-  // Simulate scores based on detected errors and text complexity
   const grammarPenalty = corrections.filter(c => c.rule !== "Correct Usage").length * 5;
   const spellingPenalty = corrections.filter(c => c.rule === "Spelling").length * 3;
   
@@ -169,7 +155,7 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
       grammar: Math.min(95, Math.max(70, 88 - grammarPenalty + Math.random() * 7)),
       vocabulary: Math.min(95, Math.max(65, 75 + complexityRatio * 50 + Math.random() * 10)),
       fluency: Math.min(95, Math.max(70, 80 + (wordCount > 30 ? 10 : 0) + Math.random() * 5)),
-      overall: 0, // To be calculated
+      overall: 0,
     },
     suggestions: [],
     corrections,
@@ -177,7 +163,6 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     strengths: [],
   };
   
-  // Determine overall score as weighted average
   mockResponse.scores.overall = Math.round(
     (mockResponse.scores.pronunciation * 0.2) +
     (mockResponse.scores.grammar * 0.3) +
@@ -185,7 +170,6 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     (mockResponse.scores.fluency * 0.2)
   );
   
-  // Generate personalized suggestions
   if (mockResponse.scores.grammar < 80) {
     mockResponse.suggestions.push("Focus on basic grammar rules such as subject-verb agreement and proper use of articles.");
   }
@@ -202,7 +186,6 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     mockResponse.suggestions.push("Practice speaking regularly to improve your fluency. Try to reduce pauses between words.");
   }
   
-  // Add general suggestions if we don't have specific ones
   if (mockResponse.suggestions.length === 0) {
     mockResponse.suggestions = [
       "Continue practicing regularly to maintain your skills.",
@@ -211,7 +194,6 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     ];
   }
   
-  // Identify strengths
   const strengths = [];
   if (mockResponse.scores.grammar > 85) strengths.push("grammar");
   if (mockResponse.scores.vocabulary > 85) strengths.push("vocabulary");
@@ -227,9 +209,6 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
   return mockResponse;
 };
 
-/**
- * Process raw API response into a format compatible with our UI
- */
 export const processAnalysisToFeedback = (analysisResponse: LanguageAnalysisResponse): AIFeedbackResult => {
   return {
     pronunciation: analysisResponse.scores.pronunciation,
@@ -240,20 +219,17 @@ export const processAnalysisToFeedback = (analysisResponse: LanguageAnalysisResp
     suggestions: [
       ...analysisResponse.suggestions,
       ...analysisResponse.strengths
-    ].slice(0, 5), // Limit to 5 suggestions
-    corrections: analysisResponse.corrections.slice(0, 3) // Limit to 3 corrections
+    ].slice(0, 5),
+    corrections: analysisResponse.corrections.slice(0, 3)
   };
 };
 
-/**
- * Convert API response to database GrammarCorrection format
- */
 export const processAnalysisToCorrections = (
   analysisResponse: LanguageAnalysisResponse, 
   sessionId: string
 ): GrammarCorrection[] => {
   return analysisResponse.corrections.map(correction => ({
-    id: '', // Will be set by the database
+    id: '',
     sessionId,
     original: correction.original,
     corrected: correction.corrected,

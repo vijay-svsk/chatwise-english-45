@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Trophy, Medal, Award } from 'lucide-react';
 import { db } from '@/services/databaseService';
 import { LeaderboardEntry } from '@/types/database';
+import { cn } from '@/lib/utils';
 
 interface LeaderboardProps {
   limit?: number;

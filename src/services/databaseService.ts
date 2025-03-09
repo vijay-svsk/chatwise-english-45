@@ -1,4 +1,3 @@
-
 import { User, PracticeSession, GrammarCorrection, Reward, LeaderboardEntry } from '@/types/database';
 
 // In a real app, this would connect to a backend database
@@ -68,6 +67,13 @@ class DatabaseService {
     
     this.setItem('sessions', [...sessions, newSession]);
     return newSession;
+  }
+
+  async updateSession(session: PracticeSession): Promise<PracticeSession> {
+    const sessions = await this.getSessions();
+    const updatedSessions = sessions.map(s => s.id === session.id ? session : s);
+    this.setItem('sessions', updatedSessions);
+    return session;
   }
 
   // Grammar corrections

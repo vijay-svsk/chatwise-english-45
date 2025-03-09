@@ -1,6 +1,5 @@
-
 import { db } from './databaseService';
-import { User, Reward } from '@/types/database';
+import { User, Reward, LeaderboardEntry } from '@/types/database';
 
 export interface RewardEvent {
   type: 'practice_complete' | 'streak' | 'grammar_mastery' | 'pronunciation_mastery' | 'vocabulary_mastery' | 'level_up';
@@ -67,7 +66,7 @@ export const getUserRewards = async (userId: string): Promise<Reward[]> => {
   return db.getRewardsByUserId(userId);
 };
 
-export const getLeaderboard = async (limit: number = 10): Promise<User[]> => {
+export const getLeaderboard = async (limit: number = 10): Promise<LeaderboardEntry[]> => {
   const leaderboard = await db.getLeaderboard();
   return leaderboard.slice(0, limit);
 };

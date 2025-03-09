@@ -1,5 +1,6 @@
 
 import { LanguageAnalysisRequest, LanguageAnalysisResponse, analyzeLanguage } from "@/services/languageAnalysisService";
+import { db } from '@/services/databaseService';
 
 /**
  * This is a mock API endpoint that simulates what would be implemented
@@ -10,7 +11,7 @@ export const mockAnalyzeLanguageAPI = async (request: LanguageAnalysisRequest): 
   // In a real implementation, this would call Gemini API with a prompt like:
   // "Analyze the following English text for grammar, vocabulary, pronunciation, and fluency.
   // Provide scores from 0-100 for each category, suggestions for improvement,
-  // and specific corrections for any errors found."
+  // and specific corrections for any errors found. Also include grammar rules that apply."
   
   console.log("Analyzing language with mock API...", request);
   
@@ -18,7 +19,12 @@ export const mockAnalyzeLanguageAPI = async (request: LanguageAnalysisRequest): 
   await new Promise(resolve => setTimeout(resolve, 1500));
   
   // Use our service to generate mock data
-  return analyzeLanguage(request);
+  const analysisResult = await analyzeLanguage(request);
+  
+  // Log the analysis for development purposes
+  console.log("Analysis complete:", analysisResult);
+  
+  return analysisResult;
 };
 
 /**
@@ -27,8 +33,12 @@ export const mockAnalyzeLanguageAPI = async (request: LanguageAnalysisRequest): 
  * export const analyzeLanguageAPI = async (text: string) => {
  *   const response = await fetch('/api/analyze-language', {
  *     method: 'POST',
- *     headers: { 'Content-Type': 'application/json' },
- *     body: JSON.stringify({ text })
+ *     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer YOUR_API_KEY' },
+ *     body: JSON.stringify({ 
+ *       text,
+ *       model: "gemini-pro",
+ *       detailed: true 
+ *     })
  *   });
  *   
  *   if (!response.ok) {

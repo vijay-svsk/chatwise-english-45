@@ -1,5 +1,6 @@
 
 import { AIFeedbackResult } from '@/components/AIFeedback';
+import { GrammarCorrection } from '@/types/database';
 
 export interface LanguageAnalysisRequest {
   text: string;
@@ -20,10 +21,55 @@ export interface LanguageAnalysisResponse {
     original: string;
     corrected: string;
     explanation: string;
+    rule?: string;
   }[];
   errorPatterns: string[];
   strengths: string[];
 }
+
+// Common grammar rules for explanations
+const grammarRules = [
+  {
+    name: "Subject-Verb Agreement",
+    pattern: /\b(I|you|we|they)\s+(is|was)\b|\b(he|she|it)\s+(are|were)\b/i,
+    explanation: "The verb must agree with the subject in number and person."
+  },
+  {
+    name: "Article Usage",
+    pattern: /\ba ([aeiou])/i,
+    explanation: "Use 'an' before words that begin with vowel sounds."
+  },
+  {
+    name: "Capitalization",
+    pattern: /\bi\b/,
+    explanation: "The pronoun 'I' should always be capitalized."
+  },
+  {
+    name: "Verb Tense Consistency",
+    pattern: /yesterday.+\b(go|come|eat|drink|do|make)\b/i,
+    explanation: "Use past tense for actions that happened in the past."
+  },
+  {
+    name: "Preposition Usage",
+    pattern: /\b(arrive|get)\s+to\b/i,
+    explanation: "Use 'arrive at' for specific locations and 'arrive in' for larger areas."
+  },
+  {
+    name: "Double Negative",
+    pattern: /\b(don't|do not|can't|cannot|won't|will not).*?no\b/i,
+    explanation: "Avoid using double negatives as they create a positive meaning."
+  },
+  {
+    name: "Comma Splice",
+    pattern: /[a-z],\s+[a-z]/i,
+    explanation: "Don't join two independent clauses with just a comma. Use a conjunction, semicolon, or period."
+  },
+  {
+    name: "Possessive Apostrophe",
+    pattern: /\b(its|their|your|our|his|her)\s+going\b/i,
+    explanation: "Don't confuse possessive pronouns with contractions (e.g., 'its' vs 'it's')."
+  }
+];
 
 /**
  * Analyze text using the Gemini API (to be implemented on the backend)
@@ -31,50 +77,71 @@ export interface LanguageAnalysisResponse {
  * what we expect from the API
  */
 export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise<LanguageAnalysisResponse> => {
-  // In a real implementation, we'd make an API call to our backend:
-  // return fetch('/api/analyze-language', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(request)
-  // }).then(res => {
-  //   if (!res.ok) throw new Error('Failed to analyze language');
-  //   return res.json();
-  // });
+  // In a real implementation, we'd make an API call to our backend
   
   // For now, we'll simulate the API response
   const { text, detailed = false } = request;
   
   // Analyze text for common errors (simplified)
   const commonErrors = [
-    { pattern: " i ", type: "grammar", fix: " I " },
-    { pattern: "your welcome", type: "grammar", fix: "you're welcome" },
-    { pattern: "there house", type: "grammar", fix: "their house" },
-    { pattern: "alot", type: "spelling", fix: "a lot" },
-    { pattern: "could of", type: "grammar", fix: "could have" },
-    { pattern: "definately", type: "spelling", fix: "definitely" },
+    { pattern: " i ", type: "grammar", fix: " I ", rule: "Capitalization" },
+    { pattern: "your welcome", type: "grammar", fix: "you're welcome", rule: "Possessive vs. Contraction" },
+    { pattern: "there house", type: "grammar", fix: "their house", rule: "Homophone Usage" },
+    { pattern: "alot", type: "spelling", fix: "a lot", rule: "Compound Words" },
+    { pattern: "could of", type: "grammar", fix: "could have", rule: "Verb Form" },
+    { pattern: "definately", type: "spelling", fix: "definitely", rule: "Spelling" },
+    { pattern: "everyday", type: "grammar", fix: "every day", rule: "Adjective vs. Adverb" },
+    { pattern: "less people", type: "grammar", fix: "fewer people", rule: "Less vs. Fewer" },
+    { pattern: "me and john", type: "grammar", fix: "John and I", rule: "Pronoun Order" },
+    { pattern: "i seen", type: "grammar", fix: "I saw", rule: "Past Participle vs. Simple Past" },
   ];
-  
-  // Check for error patterns in text
-  const foundErrors = commonErrors.filter(error => 
-    text.toLowerCase().includes(error.pattern.toLowerCase())
-  );
   
   // Extract sentences
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
   
   // Generate corrections based on found errors
-  const corrections = foundErrors.map(error => {
-    // Find the sentence containing this error
-    const relevantSentence = sentences.find(sentence => 
-      sentence.toLowerCase().includes(error.pattern.toLowerCase())
-    ) || error.pattern;
+  const corrections = [];
+  
+  // Check each sentence for errors
+  for (const sentence of sentences) {
+    let foundError = false;
     
-    return {
-      original: relevantSentence.trim(),
-      corrected: relevantSentence.replace(new RegExp(error.pattern, 'gi'), error.fix).trim(),
-      explanation: `This contains a common ${error.type} error. "${error.pattern}" should be "${error.fix}".`
-    };
-  });
+    // Check for common errors
+    for (const error of commonErrors) {
+      if (sentence.toLowerCase().includes(error.pattern.toLowerCase())) {
+        const ruleName = error.rule;
+        const ruleDetails = grammarRules.find(r => r.name === ruleName) || 
+                           { name: ruleName, explanation: `This is a common ${error.type} error.` };
+                           
+        corrections.push({
+          original: sentence.trim(),
+          corrected: sentence.replace(new RegExp(error.pattern, 'gi'), error.fix).trim(),
+          explanation: `This contains a common ${error.type} error. "${error.pattern}" should be "${error.fix}".`,
+          rule: ruleName
+        });
+        
+        foundError = true;
+        break;
+      }
+    }
+    
+    // Check for grammar rule patterns if no common error was found
+    if (!foundError && detailed) {
+      for (const rule of grammarRules) {
+        if (rule.pattern.test(sentence)) {
+          corrections.push({
+            original: sentence.trim(),
+            corrected: sentence.trim(), // We don't have automatic correction for these patterns
+            explanation: rule.explanation,
+            rule: rule.name
+          });
+          
+          foundError = true;
+          break;
+        }
+      }
+    }
+  }
   
   // If we don't have any corrections but have text, add some general feedback
   if (corrections.length === 0 && sentences.length > 0) {
@@ -82,7 +149,8 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     corrections.push({
       original: randomSentence,
       corrected: randomSentence,
-      explanation: "This sentence seems well-formed grammatically."
+      explanation: "This sentence seems well-formed grammatically.",
+      rule: "Correct Usage"
     });
   }
   
@@ -92,8 +160,8 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
   const complexityRatio = wordCount > 0 ? complexWords / wordCount : 0;
   
   // Simulate scores based on detected errors and text complexity
-  const grammarPenalty = foundErrors.filter(e => e.type === "grammar").length * 5;
-  const spellingPenalty = foundErrors.filter(e => e.type === "spelling").length * 3;
+  const grammarPenalty = corrections.filter(c => c.rule !== "Correct Usage").length * 5;
+  const spellingPenalty = corrections.filter(c => c.rule === "Spelling").length * 3;
   
   const mockResponse: LanguageAnalysisResponse = {
     scores: {
@@ -105,7 +173,7 @@ export const analyzeLanguage = async (request: LanguageAnalysisRequest): Promise
     },
     suggestions: [],
     corrections,
-    errorPatterns: foundErrors.map(e => e.pattern),
+    errorPatterns: corrections.map(c => c.rule).filter((v, i, a) => a.indexOf(v) === i),
     strengths: [],
   };
   
@@ -175,4 +243,21 @@ export const processAnalysisToFeedback = (analysisResponse: LanguageAnalysisResp
     ].slice(0, 5), // Limit to 5 suggestions
     corrections: analysisResponse.corrections.slice(0, 3) // Limit to 3 corrections
   };
+};
+
+/**
+ * Convert API response to database GrammarCorrection format
+ */
+export const processAnalysisToCorrections = (
+  analysisResponse: LanguageAnalysisResponse, 
+  sessionId: string
+): GrammarCorrection[] => {
+  return analysisResponse.corrections.map(correction => ({
+    id: '', // Will be set by the database
+    sessionId,
+    original: correction.original,
+    corrected: correction.corrected,
+    rule: correction.rule || 'General',
+    explanation: correction.explanation
+  }));
 };

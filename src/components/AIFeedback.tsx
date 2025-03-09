@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lightbulb, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { FeedbackCorrection } from '@/types/database';
 
 interface AIFeedbackProps {
   text: string;
@@ -21,11 +21,7 @@ export interface AIFeedbackResult {
   fluency: number;
   overall: number;
   suggestions: string[];
-  corrections: {
-    original: string;
-    corrected: string;
-    explanation: string;
-  }[];
+  corrections: FeedbackCorrection[];
 }
 
 const AIFeedback: React.FC<AIFeedbackProps> = ({

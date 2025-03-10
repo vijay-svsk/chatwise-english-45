@@ -2,30 +2,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mic, Play, StopCircle, Loader2 } from 'lucide-react';
+import { Mic, Play, StopCircle, Loader2, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { geminiService } from '@/services/geminiService';
+import { useToast } from '@/hooks/use-toast';
 
 interface TranscriptionBoxProps {
   onTranscriptionComplete?: (text: string) => void;
+  onAnalysisComplete?: (analysis: any) => void;
   title?: string;
   description?: string;
   isProcessing?: boolean;
+  enableAIAnalysis?: boolean;
 }
 
 const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({ 
   onTranscriptionComplete,
+  onAnalysisComplete,
   title = "Record your voice",
   description = "Speak clearly into your microphone",
-  isProcessing = false
+  isProcessing = false,
+  enableAIAnalysis = true
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState("");
   const [interimTranscription, setInterimTranscription] = useState("");
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioBlob = useRef<Blob | null>(null);
+  const { toast } = useToast();
   
   // Initialize speech recognition
   useEffect(() => {
@@ -67,18 +77,29 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      
+      // Clean up audio stream on unmount
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop());
+      }
     };
   }, []);
   
   const requestMicrophonePermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
       setHasPermission(true);
       setupMediaRecorder(stream);
       return true;
     } catch (err) {
       console.error('Error accessing microphone', err);
       setHasPermission(false);
+      toast({
+        title: "Microphone Access Failed",
+        description: "Please allow microphone access to use this feature.",
+        variant: "destructive"
+      });
       return false;
     }
   };
@@ -93,10 +114,13 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
     };
     
     mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-      audioChunksRef.current = [];
+      audioBlob.current = new Blob(audioChunksRef.current, { type: 'audio/wav' });
       
-      // Here you could save the audio to send to an API, etc.
+      // Make the audio available for AI analysis
+      if (enableAIAnalysis && transcription && onAnalysisComplete) {
+        analyzeAudio();
+      }
+      
       console.log('Recording stopped, audio blob created');
     };
     
@@ -120,13 +144,13 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
     setTranscription("");
     setInterimTranscription("");
     setIsRecording(true);
+    audioChunksRef.current = [];
     
     if (recognitionRef.current) {
       recognitionRef.current.start();
     }
     
     if (mediaRecorderRef.current) {
-      audioChunksRef.current = [];
       mediaRecorderRef.current.start();
     }
   };
@@ -143,7 +167,58 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
     }
     
     if (onTranscriptionComplete) {
-      onTranscriptionComplete(transcription + interimTranscription);
+      const finalTranscription = transcription + interimTranscription;
+      onTranscriptionComplete(finalTranscription);
+      setTranscription(finalTranscription);
+      setInterimTranscription("");
+    }
+  };
+  
+  const analyzeAudio = async () => {
+    if (!audioBlob.current || !transcription) {
+      toast({
+        title: "Analysis Failed",
+        description: "No audio recording or transcription to analyze.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Send the audio and transcription to Gemini API for analysis
+      const analysis = await geminiService.analyzeAudio(audioBlob.current, transcription);
+      
+      if (onAnalysisComplete) {
+        onAnalysisComplete(analysis);
+      }
+      
+      toast({
+        title: "Analysis Complete",
+        description: "Your speech has been analyzed successfully."
+      });
+    } catch (error) {
+      console.error('Error analyzing audio:', error);
+      toast({
+        title: "Analysis Failed",
+        description: "Could not analyze your recording. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  
+  const handleManualAnalysis = () => {
+    if (audioBlob.current && transcription) {
+      analyzeAudio();
+    } else {
+      toast({
+        title: "Nothing to Analyze",
+        description: "Please record your speech first.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -170,10 +245,10 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
               <p className="mb-2 text-foreground">{transcription}</p>
               <p className="text-muted-foreground italic">{interimTranscription}</p>
               
-              {isProcessing && (
+              {(isProcessing || isAnalyzing) && (
                 <div className="mt-4 flex items-center justify-center text-muted-foreground">
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing your speech...
+                  {isAnalyzing ? "Analyzing your speech..." : "Processing..."}
                 </div>
               )}
             </div>
@@ -184,23 +259,42 @@ const TranscriptionBox: React.FC<TranscriptionBoxProps> = ({
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          variant={isRecording ? "destructive" : "default"}
-          className={cn("gap-2", isRecording && "animate-pulse")}
-          onClick={toggleRecording}
-          disabled={isProcessing}
-        >
-          {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          {isRecording ? "Stop Recording" : "Start Recording"}
-        </Button>
+      <CardFooter className="flex flex-wrap gap-2 justify-between">
+        <div className="flex gap-2">
+          <Button 
+            variant={isRecording ? "destructive" : "default"}
+            className={cn("gap-2", isRecording && "animate-pulse")}
+            onClick={toggleRecording}
+            disabled={isProcessing || isAnalyzing}
+          >
+            {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            {isRecording ? "Stop Recording" : "Start Recording"}
+          </Button>
+          
+          {enableAIAnalysis && transcription && !isRecording && (
+            <Button
+              variant="secondary"
+              className="gap-2"
+              onClick={handleManualAnalysis}
+              disabled={isProcessing || isAnalyzing || !transcription}
+            >
+              {isAnalyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Lightbulb className="h-4 w-4" />
+              )}
+              {isAnalyzing ? "Analyzing..." : "Analyze"}
+            </Button>
+          )}
+        </div>
         
         <Button 
           variant="outline" 
-          disabled={(!transcription && !interimTranscription) || isProcessing}
+          disabled={(!transcription && !interimTranscription) || isProcessing || isAnalyzing}
           onClick={() => {
             setTranscription("");
             setInterimTranscription("");
+            audioBlob.current = null;
           }}
         >
           Clear

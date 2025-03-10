@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/services/databaseService';
@@ -13,7 +12,6 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, User, Shield, HelpCircle, Moon, Volume2 } from 'lucide-react';
-import { select } from '@tanstack/react-query-persist-client';
 
 const Settings = () => {
   const { toast } = useToast();
@@ -37,7 +35,6 @@ const Settings = () => {
     difficulty: 'beginner'
   });
   
-  // Update form values when settings data loads
   React.useEffect(() => {
     if (settings) {
       setFormValues(settings);

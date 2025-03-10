@@ -63,6 +63,51 @@ const ProgressPage = () => {
     },
   ];
 
+  // Sample performance data for the chart
+  const performanceData = [
+    { date: 'Mon', pronunciation: 70, fluency: 65, vocabulary: 80, grammar: 75 },
+    { date: 'Tue', pronunciation: 75, fluency: 70, vocabulary: 75, grammar: 80 },
+    { date: 'Wed', pronunciation: 80, fluency: 75, vocabulary: 85, grammar: 78 },
+    { date: 'Thu', pronunciation: 85, fluency: 80, vocabulary: 82, grammar: 84 },
+    { date: 'Fri', pronunciation: 82, fluency: 85, vocabulary: 88, grammar: 86 },
+    { date: 'Sat', pronunciation: 88, fluency: 82, vocabulary: 90, grammar: 89 },
+    { date: 'Sun', pronunciation: 90, fluency: 88, vocabulary: 92, grammar: 90 },
+  ];
+
+  // Sample skill radar data
+  const skillRadarData = [
+    { skill: 'Pronunciation', value: 80, fullMark: 100 },
+    { skill: 'Vocabulary', value: 85, fullMark: 100 },
+    { skill: 'Grammar', value: 75, fullMark: 100 },
+    { skill: 'Listening', value: 90, fullMark: 100 },
+    { skill: 'Reading', value: 85, fullMark: 100 },
+    { skill: 'Writing', value: 70, fullMark: 100 },
+  ];
+
+  // Sample activity calendar data
+  const activityCalendarData = last7Days.map((date, index) => ({
+    date,
+    count: sessionsPerDay[index] * 15, // Assuming each session is 15 minutes
+  }));
+
+  // Generate full activity calendar data for the last 84 days
+  const generateActivityData = () => {
+    const result = [];
+    const currentDate = new Date();
+    
+    for (let i = 0; i < 84; i++) {
+      const date = new Date();
+      date.setDate(currentDate.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Random activity between 0 and 90 minutes
+      const count = Math.floor(Math.random() * 90);
+      result.push({ date: dateStr, count });
+    }
+    
+    return result;
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -146,7 +191,7 @@ const ProgressPage = () => {
                     <CardTitle>Performance Trend</CardTitle>
                   </CardHeader>
                   <CardContent className="h-[350px]">
-                    <PerformanceChart />
+                    <PerformanceChart data={performanceData} />
                   </CardContent>
                 </Card>
                 
@@ -156,7 +201,7 @@ const ProgressPage = () => {
                       <CardTitle>Skills Breakdown</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[250px] flex justify-center items-center">
-                      <SkillRadar />
+                      <SkillRadar data={skillRadarData} />
                     </CardContent>
                   </Card>
                   
@@ -213,7 +258,7 @@ const ProgressPage = () => {
                     <CardTitle>Your Activity Calendar</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ActivityCalendar />
+                    <ActivityCalendar data={generateActivityData()} />
                   </CardContent>
                 </Card>
               </TabsContent>

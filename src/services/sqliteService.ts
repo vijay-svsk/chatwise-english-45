@@ -1,3 +1,4 @@
+
 import { openDB, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
 import { User, PracticeSession, GrammarCorrection, Reward, Lesson, Achievement, CommunityPost, CommunityComment, UserSettings } from '@/types/database';
@@ -141,6 +142,21 @@ class SQLiteService {
     };
     await (await this.db).put('rewards', newReward);
     return newReward;
+  }
+
+  // Get reward types for reference
+  getRewardTypes() {
+    return {
+      practice_complete: "Completed a practice session",
+      streak: "Maintained a practice streak",
+      grammar_mastery: "Achieved high grammar score",
+      pronunciation_mastery: "Achieved high pronunciation score",
+      vocabulary_mastery: "Achieved high vocabulary score",
+      reading_mastery: "Achieved high reading score",
+      writing_mastery: "Achieved high writing score",
+      level_up: "Leveled up your English proficiency",
+      login_bonus: "Daily login bonus"
+    };
   }
 
   // Leaderboard method

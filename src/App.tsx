@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/toaster";
+import initDatabase from "./services/initDatabaseService";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -19,13 +20,25 @@ import Achievements from "./pages/Achievements";
 import Conversation from "./pages/Conversation";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-
-// Import the new WritingPractice page
 import WritingPractice from "./pages/WritingPractice";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
+  useEffect(() => {
+    // Initialize the database with default data
+    initDatabase().catch(error => {
+      console.error("Failed to initialize database:", error);
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="ui-theme">

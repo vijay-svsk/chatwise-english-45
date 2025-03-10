@@ -1,150 +1,168 @@
 
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  Home,
-  BookOpen,
-  BarChart2,
-  Settings,
-  Users,
-  Award,
-  Mic,
-  FileText,
-  Bookmark,
-  Headphones,
-  MessageCircle
-} from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { 
+  LayoutDashboard, 
+  BarChart, 
+  Mic, 
+  Headphones, 
+  BookOpen, 
+  Users, 
+  Settings, 
+  Award, 
+  MessageSquare, 
+  PenLine,
+  Brain,
+  BookText,
+  Trophy,
+  Gamepad2
+} from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
   
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-  
   return (
-    <aside className="fixed top-16 left-0 w-64 h-[calc(100vh-4rem)] bg-background border-r border-border overflow-y-auto no-scrollbar z-10">
-      <div className="p-4">
+    <aside className="fixed top-16 left-0 w-64 h-screen bg-background border-r z-10">
+      <div className="h-full p-4 flex flex-col">
         <nav className="space-y-1">
-          <NavItem
+          <Link
             to="/dashboard"
-            icon={<Home className="w-5 h-5" />}
-            isActive={isActive('/dashboard')}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/dashboard" && "bg-muted text-foreground"
+            )}
           >
-            Dashboard
-          </NavItem>
-          <NavItem
+            <LayoutDashboard className="h-5 w-5" />
+            <span>Dashboard</span>
+          </Link>
+          
+          <div className="pt-4 pb-2">
+            <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Practice & Learn
+            </h3>
+          </div>
+          
+          <Link
+            to="/speaking-practice"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/speaking-practice" && "bg-muted text-foreground"
+            )}
+          >
+            <Mic className="h-5 w-5" />
+            <span>Speaking Practice</span>
+          </Link>
+          
+          <Link
+            to="/writing-practice"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/writing-practice" && "bg-muted text-foreground"
+            )}
+          >
+            <PenLine className="h-5 w-5" />
+            <span>Writing Practice</span>
+          </Link>
+          
+          <Link
+            to="/listening-practice"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/listening-practice" && "bg-muted text-foreground"
+            )}
+          >
+            <Headphones className="h-5 w-5" />
+            <span>Listening Practice</span>
+          </Link>
+          
+          <Link
+            to="/vocabulary"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/vocabulary" && "bg-muted text-foreground"
+            )}
+          >
+            <Brain className="h-5 w-5" />
+            <span>Vocabulary</span>
+          </Link>
+          
+          <Link
+            to="/conversation"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/conversation" && "bg-muted text-foreground"
+            )}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span>AI Conversation</span>
+          </Link>
+          
+          <Link
             to="/lessons"
-            icon={<BookOpen className="w-5 h-5" />}
-            isActive={isActive('/lessons')}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/lessons" && "bg-muted text-foreground"
+            )}
           >
-            Lessons
-          </NavItem>
-          <NavItem
-            to="/progress"
-            icon={<BarChart2 className="w-5 h-5" />}
-            isActive={isActive('/progress')}
-          >
-            Progress
-          </NavItem>
-          <NavItem
+            <BookText className="h-5 w-5" />
+            <span>Lessons</span>
+          </Link>
+          
+          <div className="pt-4 pb-2">
+            <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Community & Progress
+            </h3>
+          </div>
+          
+          <Link
             to="/community"
-            icon={<Users className="w-5 h-5" />}
-            isActive={isActive('/community')}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/community" && "bg-muted text-foreground"
+            )}
           >
-            Community
-          </NavItem>
-          <NavItem
+            <Users className="h-5 w-5" />
+            <span>Community</span>
+          </Link>
+          
+          <Link
+            to="/progress"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/progress" && "bg-muted text-foreground"
+            )}
+          >
+            <BarChart className="h-5 w-5" />
+            <span>Progress</span>
+          </Link>
+          
+          <Link
             to="/achievements"
-            icon={<Award className="w-5 h-5" />}
-            isActive={isActive('/achievements')}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/achievements" && "bg-muted text-foreground"
+            )}
           >
-            Achievements
-          </NavItem>
+            <Trophy className="h-5 w-5" />
+            <span>Achievements</span>
+          </Link>
           
-          <div className="pt-4 pb-2">
-            <h3 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider pl-3">
-              Practice
-            </h3>
+          <div className="mt-auto pt-4">
+            <Link
+              to="/settings"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+                location.pathname === "/settings" && "bg-muted text-foreground"
+              )}
+            >
+              <Settings className="h-5 w-5" />
+              <span>Settings</span>
+            </Link>
           </div>
-          
-          <NavItem
-            to="/practice/speaking"
-            icon={<Mic className="w-5 h-5" />}
-            isActive={isActive('/practice/speaking')}
-          >
-            Speaking
-          </NavItem>
-          <NavItem
-            to="/practice/listening"
-            icon={<Headphones className="w-5 h-5" />}
-            isActive={isActive('/practice/listening')}
-          >
-            Listening
-          </NavItem>
-          <NavItem
-            to="/practice/writing"
-            icon={<FileText className="w-5 h-5" />}
-            isActive={isActive('/practice/writing')}
-          >
-            Writing
-          </NavItem>
-          <NavItem
-            to="/practice/vocabulary"
-            icon={<Bookmark className="w-5 h-5" />}
-            isActive={isActive('/practice/vocabulary')}
-          >
-            Vocabulary
-          </NavItem>
-          <NavItem
-            to="/practice/conversation"
-            icon={<MessageCircle className="w-5 h-5" />}
-            isActive={isActive('/practice/conversation')}
-          >
-            Conversation
-          </NavItem>
-          
-          <div className="pt-4 pb-2">
-            <h3 className="text-xs uppercase text-muted-foreground font-semibold tracking-wider pl-3">
-              Account
-            </h3>
-          </div>
-          
-          <NavItem
-            to="/settings"
-            icon={<Settings className="w-5 h-5" />}
-            isActive={isActive('/settings')}
-          >
-            Settings
-          </NavItem>
         </nav>
       </div>
     </aside>
-  );
-};
-
-interface NavItemProps {
-  to: string;
-  icon: React.ReactNode;
-  isActive: boolean;
-  children: React.ReactNode;
-}
-
-const NavItem: React.FC<NavItemProps> = ({ to, icon, isActive, children }) => {
-  return (
-    <NavLink
-      to={to}
-      className={cn(
-        "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
-        isActive
-          ? "bg-primary text-primary-foreground font-medium"
-          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-      )}
-    >
-      <span className="mr-3">{icon}</span>
-      {children}
-    </NavLink>
   );
 };
 

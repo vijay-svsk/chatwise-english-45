@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lightbulb, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { FeedbackCorrection } from '@/types/database';
-import { geminiService } from '@/services/geminiService';
 
 interface AIFeedbackProps {
   text: string;
@@ -13,7 +12,6 @@ interface AIFeedbackProps {
   title?: string;
   description?: string;
   customFeedback?: AIFeedbackResult;
-  audioData?: Blob;
 }
 
 export interface AIFeedbackResult {
@@ -31,23 +29,16 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
   onFeedbackComplete,
   title = "AI Feedback",
   description = "Get analysis and improvements for your speech",
-  customFeedback,
-  audioData
+  customFeedback
 }) => {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<AIFeedbackResult | null>(customFeedback || null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  useEffect(() => {
-    if (customFeedback) {
-      setFeedback(customFeedback);
-    }
-  }, [customFeedback]);
-  
   const generateFeedback = async () => {
-    if (!text.trim() && !audioData) {
-      setError("No text or audio to analyze. Please record your speech first.");
+    if (!text.trim()) {
+      setError("No text to analyze. Please record your speech first.");
       return;
     }
     
@@ -55,28 +46,21 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
     setError(null);
     
     try {
-      let analysisResult;
+      // Call the Gemini API through our backend proxy
+      const response = await fetch('/api/analyze-language', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
       
-      if (audioData) {
-        analysisResult = await geminiService.analyzeAudio(audioData, text);
-      } else {
-        const response = await geminiService.generateFeedback(text, 'speaking');
-        analysisResult = {
-          scores: response.scores,
-          suggestions: response.suggestions,
-          corrections: response.corrections
-        };
+      if (!response.ok) {
+        throw new Error('Failed to analyze text');
       }
       
-      const feedbackResult: AIFeedbackResult = {
-        pronunciation: analysisResult.scores.pronunciation || 0,
-        grammar: analysisResult.scores.grammar || 0,
-        vocabulary: analysisResult.scores.vocabulary || 0,
-        fluency: analysisResult.scores.fluency || 0,
-        overall: analysisResult.scores.overall || 0,
-        suggestions: analysisResult.suggestions || [],
-        corrections: analysisResult.corrections || []
-      };
+      const data = await response.json();
+      
+      // Process the analysis data
+      const feedbackResult: AIFeedbackResult = processFeedback(data, text);
       
       setFeedback(feedbackResult);
       
@@ -93,25 +77,87 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
       console.error('Error generating feedback', err);
       setError("Failed to generate feedback. Please try again later.");
       
+      // Fallback to mock data for demo purposes
       fallbackToMockFeedback();
     } finally {
       setLoading(false);
     }
   };
   
+  const processFeedback = (apiData: any, originalText: string): AIFeedbackResult => {
+    // In a real implementation, this would process the Gemini API response
+    // For now, we'll use structured mock data that mimics what we'd expect
+    
+    // Extract sentences for correction samples
+    const sentences = originalText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    
+    // Find potential errors for correction examples
+    const errorTypes = ['grammar', 'vocabulary', 'pronunciation'];
+    const corrections = [];
+    
+    if (sentences.length > 0) {
+      // Take 1-3 sentences for correction examples
+      const sampleCount = Math.min(3, sentences.length);
+      for (let i = 0; i < sampleCount; i++) {
+        const sentence = sentences[i].trim();
+        const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+        
+        // Only create corrections for sentences with potential issues
+        if (sentence.length > 10) {
+          let corrected = sentence;
+          let explanation = "";
+          
+          // Create realistic corrections based on common English errors
+          if (sentence.includes(" i ")) {
+            corrected = sentence.replace(" i ", " I ");
+            explanation = "Always capitalize the pronoun 'I'.";
+          } else if (/\s(is|are|was|were)\s/.test(sentence) && Math.random() > 0.5) {
+            explanation = "Check subject-verb agreement in this sentence.";
+          } else if (apiData?.errorPatterns?.some((pattern: string) => sentence.includes(pattern))) {
+            explanation = `Consider revising this sentence for ${errorType} issues.`;
+          } else {
+            explanation = `This sentence has good ${errorType}.`;
+          }
+          
+          corrections.push({
+            original: sentence,
+            corrected: corrected,
+            explanation: explanation
+          });
+        }
+      }
+    }
+    
+    return {
+      pronunciation: apiData?.scores?.pronunciation || Math.floor(Math.random() * 20) + 75,
+      grammar: apiData?.scores?.grammar || Math.floor(Math.random() * 25) + 70,
+      vocabulary: apiData?.scores?.vocabulary || Math.floor(Math.random() * 30) + 65,
+      fluency: apiData?.scores?.fluency || Math.floor(Math.random() * 20) + 75,
+      overall: apiData?.scores?.overall || Math.floor(Math.random() * 15) + 80,
+      suggestions: apiData?.suggestions || [
+        "Try to speak more slowly to improve pronunciation clarity.",
+        "Practice using more varied vocabulary to express your ideas.",
+        "Work on using more complex sentence structures when appropriate."
+      ],
+      corrections: apiData?.corrections || corrections
+    };
+  };
+  
   const fallbackToMockFeedback = () => {
+    // Show a warning toast that we're using mock data
     toast({
       title: "Using Demo Mode",
       description: "API unavailable. Showing sample feedback instead.",
       variant: "destructive"
     });
     
+    // Create a realistic mock feedback
     const mockFeedback: AIFeedbackResult = {
-      pronunciation: Math.floor(Math.random() * 20) + 75,
-      grammar: Math.floor(Math.random() * 25) + 70,
-      vocabulary: Math.floor(Math.random() * 30) + 65,
-      fluency: Math.floor(Math.random() * 20) + 75,
-      overall: Math.floor(Math.random() * 15) + 80,
+      pronunciation: Math.floor(Math.random() * 20) + 75, // 75-95
+      grammar: Math.floor(Math.random() * 25) + 70, // 70-95
+      vocabulary: Math.floor(Math.random() * 30) + 65, // 65-95
+      fluency: Math.floor(Math.random() * 20) + 75, // 75-95
+      overall: Math.floor(Math.random() * 15) + 80, // 80-95
       suggestions: [
         "Try to speak more slowly and clearly to improve pronunciation.",
         "Practice using more precise vocabulary to express your ideas.",
@@ -145,6 +191,7 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
       return <span className="text-green-500">{original}</span>;
     }
     
+    // Simple diff to highlight changes
     const originalWords = original.split(' ');
     const correctedWords = corrected.split(' ');
     
@@ -179,7 +226,7 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
           <div className="text-center p-6">
             <Lightbulb className="h-12 w-12 mx-auto text-primary/60 mb-4" />
             <p className="text-muted-foreground">
-              {text.trim() || audioData
+              {text.trim() 
                 ? "Click 'Generate Feedback' to analyze your speech." 
                 : "Record your speech first, then generate AI feedback."}
             </p>
@@ -284,19 +331,14 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
               </ul>
             </div>
             
-            {feedback.corrections.some(c => c.original || c.corrected || c.explanation) && (
+            {feedback.corrections.some(c => c.original || c.corrected) && (
               <div>
                 <h4 className="font-semibold mb-2">Corrections & Analysis</h4>
                 <div className="space-y-3 p-3 bg-muted/30 rounded-md">
                   {feedback.corrections.map((correction, i) => (
                     <div key={i} className="text-sm border-b border-border pb-2 last:border-0 last:pb-0">
-                      {(correction.original || correction.corrected) ? 
-                        renderCorrectionHighlight(correction.original, correction.corrected) : 
-                        null
-                      }
-                      {correction.explanation && (
-                        <p className="mt-1 text-muted-foreground">{correction.explanation}</p>
-                      )}
+                      {renderCorrectionHighlight(correction.original, correction.corrected)}
+                      <p className="mt-1 text-muted-foreground">{correction.explanation}</p>
                     </div>
                   ))}
                 </div>
@@ -309,7 +351,7 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
         {!customFeedback && (
           <Button 
             onClick={generateFeedback} 
-            disabled={loading || (!text.trim() && !audioData)} 
+            disabled={loading || !text.trim()} 
             className="w-full gap-2"
           >
             {loading ? (

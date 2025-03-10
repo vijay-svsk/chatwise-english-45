@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/services/databaseService';
 import Header from '@/components/Header';
@@ -8,12 +8,18 @@ import PerformanceChart from '@/components/PerformanceChart';
 import ActivityCalendar from '@/components/ActivityCalendar';
 import SkillRadar from '@/components/SkillRadar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { BarChart, TrendingUp, Clock, CalendarDays, BarChart2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BarChart, TrendingUp, Clock, CalendarDays, BarChart2, Award, Download, Share2, Trophy, Target } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const ProgressPage = () => {
   const userId = "1"; // In a real app, get this from auth context
+  const { toast } = useToast();
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  const [selectedSkill, setSelectedSkill] = useState<string>('all');
   
   const { data: sessions = [] } = useQuery({
     queryKey: ['sessions', userId],
@@ -61,6 +67,14 @@ const ProgressPage = () => {
       name: 'Vocabulary', 
       progress: sessions.filter(s => s.type === 'vocabulary').length / Math.max(totalSessions, 1) * 100
     },
+    { 
+      name: 'Reading', 
+      progress: sessions.filter(s => s.type === 'reading').length / Math.max(totalSessions, 1) * 100
+    },
+    { 
+      name: 'Writing', 
+      progress: sessions.filter(s => s.type === 'writing').length / Math.max(totalSessions, 1) * 100
+    },
   ];
 
   // Sample performance data for the chart
@@ -107,6 +121,30 @@ const ProgressPage = () => {
     
     return result;
   };
+  
+  // Handle report download
+  const handleDownloadReport = () => {
+    toast({
+      title: "Report Downloaded",
+      description: "Your progress report has been downloaded successfully.",
+    });
+  };
+  
+  // Handle sharing progress
+  const handleShareProgress = () => {
+    toast({
+      title: "Progress Shared",
+      description: "Your progress has been shared with your instructor.",
+    });
+  };
+  
+  // Handle setting goals
+  const handleSetGoal = () => {
+    toast({
+      title: "Goal Set",
+      description: "Your new learning goal has been set.",
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -115,9 +153,26 @@ const ProgressPage = () => {
         <Sidebar />
         <main className="flex-1 pt-16 px-6 pb-8 ml-64">
           <div className="max-w-6xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold">Your Progress</h1>
-              <p className="text-muted-foreground">Track your language learning journey</p>
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-3xl font-bold">Your Progress</h1>
+                <p className="text-muted-foreground">Track your language learning journey</p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleDownloadReport}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Report
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleShareProgress}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Progress
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSetGoal}>
+                  <Target className="h-4 w-4 mr-2" />
+                  Set Goals
+                </Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -179,11 +234,42 @@ const ProgressPage = () => {
             </div>
             
             <Tabs defaultValue="overview" className="mb-8">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="skills">Skills</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-              </TabsList>
+              <div className="flex items-center justify-between mb-6">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="skills">Skills</TabsTrigger>
+                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                  <TabsTrigger value="awards">Awards</TabsTrigger>
+                </TabsList>
+                
+                <div className="flex items-center gap-4">
+                  <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Time Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="week">Last Week</SelectItem>
+                      <SelectItem value="month">Last Month</SelectItem>
+                      <SelectItem value="year">Last Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Select Skill" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Skills</SelectItem>
+                      <SelectItem value="speaking">Speaking</SelectItem>
+                      <SelectItem value="listening">Listening</SelectItem>
+                      <SelectItem value="pronunciation">Pronunciation</SelectItem>
+                      <SelectItem value="vocabulary">Vocabulary</SelectItem>
+                      <SelectItem value="reading">Reading</SelectItem>
+                      <SelectItem value="writing">Writing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               
               <TabsContent value="overview" className="space-y-6">
                 <Card>
@@ -234,22 +320,50 @@ const ProgressPage = () => {
               </TabsContent>
               
               <TabsContent value="skills">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Your Skills Progress</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-8">
-                    {skillBreakdown.map(skill => (
-                      <div key={skill.name} className="space-y-2">
-                        <div className="flex justify-between">
-                          <h4 className="text-sm font-medium">{skill.name}</h4>
-                          <span className="text-sm">{skill.progress.toFixed(0)}%</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Your Skills Progress</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                      {skillBreakdown.map(skill => (
+                        <div key={skill.name} className="space-y-2">
+                          <div className="flex justify-between">
+                            <h4 className="text-sm font-medium">{skill.name}</h4>
+                            <span className="text-sm">{skill.progress.toFixed(0)}%</span>
+                          </div>
+                          <Progress value={skill.progress} className="h-2.5" />
                         </div>
-                        <Progress value={skill.progress} className="h-2.5" />
+                      ))}
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recommended Focus Areas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {skillBreakdown
+                          .sort((a, b) => a.progress - b.progress)
+                          .slice(0, 3)
+                          .map(skill => (
+                            <div key={skill.name} className="p-3 border rounded-lg">
+                              <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-medium">{skill.name}</h3>
+                                <span className="text-sm text-muted-foreground">{skill.progress.toFixed(0)}%</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                This skill needs more practice to improve your overall proficiency.
+                              </p>
+                              <Button size="sm" className="w-full">Practice Now</Button>
+                            </div>
+                          ))
+                        }
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
               
               <TabsContent value="activity">
@@ -260,7 +374,132 @@ const ProgressPage = () => {
                   <CardContent>
                     <ActivityCalendar data={generateActivityData()} />
                   </CardContent>
+                  <CardFooter className="flex justify-between text-sm text-muted-foreground">
+                    <div>
+                      <span className="inline-block w-3 h-3 bg-green-200 rounded-sm mr-1"></span>
+                      Less
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 bg-green-300 rounded-sm"></span>
+                      <span className="inline-block w-3 h-3 bg-green-400 rounded-sm"></span>
+                      <span className="inline-block w-3 h-3 bg-green-500 rounded-sm"></span>
+                      <span className="inline-block w-3 h-3 bg-green-600 rounded-sm"></span>
+                    </div>
+                    <div>
+                      <span className="inline-block w-3 h-3 bg-green-700 rounded-sm mr-1"></span>
+                      More
+                    </div>
+                  </CardFooter>
                 </Card>
+              </TabsContent>
+              
+              <TabsContent value="awards">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-amber-500" />
+                        Recent Achievements
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                          <Award className="h-10 w-10 text-amber-500 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium">5-Day Streak</h3>
+                            <p className="text-sm text-muted-foreground">You've practiced for 5 consecutive days!</p>
+                            <p className="text-xs text-amber-600 mt-1">Earned 2 days ago</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                          <Award className="h-10 w-10 text-blue-500 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium">Vocabulary Master</h3>
+                            <p className="text-sm text-muted-foreground">You've mastered 100 vocabulary words!</p>
+                            <p className="text-xs text-blue-600 mt-1">Earned 1 week ago</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                          <Award className="h-10 w-10 text-purple-500 flex-shrink-0" />
+                          <div>
+                            <h3 className="font-medium">Perfect Score</h3>
+                            <p className="text-sm text-muted-foreground">You got a perfect score on a practice session!</p>
+                            <p className="text-xs text-purple-600 mt-1">Earned 2 weeks ago</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="outline" className="w-full">View All Achievements</Button>
+                    </CardFooter>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Your Badges</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-4">
+                        {[...Array(9)].map((_, i) => (
+                          <div key={i} className="flex flex-col items-center">
+                            <div className={`w-14 h-14 rounded-full ${i < 5 ? 'bg-gradient-to-br from-purple-400 to-indigo-600' : 'bg-muted'} flex items-center justify-center mb-2`}>
+                              {i < 5 ? (
+                                <Award className={`h-8 w-8 text-white`} />
+                              ) : (
+                                <Award className="h-8 w-8 text-muted-foreground opacity-30" />
+                              )}
+                            </div>
+                            <span className="text-xs text-center line-clamp-2">
+                              {i < 5 ? `Badge ${i+1}` : 'Locked'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Current Challenges</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <h3 className="text-sm font-medium">10-Day Streak</h3>
+                            <span className="text-sm">7/10</span>
+                          </div>
+                          <Progress value={70} className="h-2 mb-1" />
+                          <p className="text-xs text-muted-foreground">Practice for 10 consecutive days</p>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <h3 className="text-sm font-medium">Master 5 Lessons</h3>
+                            <span className="text-sm">3/5</span>
+                          </div>
+                          <Progress value={60} className="h-2 mb-1" />
+                          <p className="text-xs text-muted-foreground">Complete 5 lessons with 90%+ score</p>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <h3 className="text-sm font-medium">Reading Marathon</h3>
+                            <span className="text-sm">2/5</span>
+                          </div>
+                          <Progress value={40} className="h-2 mb-1" />
+                          <p className="text-xs text-muted-foreground">Complete 5 reading exercises</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button className="w-full">Join More Challenges</Button>
+                    </CardFooter>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </div>

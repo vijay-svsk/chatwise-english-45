@@ -1,69 +1,166 @@
 
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
+  LayoutDashboard, 
   BarChart, 
-  BookOpen, 
-  Headphones, 
-  Home, 
-  MessageSquare, 
   Mic, 
-  Settings,
+  Headphones, 
+  BookOpen, 
+  Users, 
+  Settings, 
+  Award, 
+  MessageSquare, 
+  PenLine,
+  Brain,
+  BookText,
   Trophy,
-  Users,
-  LucideIcon
+  Gamepad2
 } from 'lucide-react';
 
-interface SidebarItem {
-  icon: LucideIcon;
-  label: string;
-  path: string;
-}
-
-const sidebarItems: SidebarItem[] = [
-  { icon: Home, label: 'Dashboard', path: '/dashboard' },
-  { icon: Mic, label: 'Speaking Practice', path: '/practice/speaking' },
-  { icon: Headphones, label: 'Listening Practice', path: '/practice/listening' },
-  { icon: MessageSquare, label: 'Conversation', path: '/practice/conversation' },
-  { icon: BookOpen, label: 'Lessons', path: '/lessons' },
-  { icon: BarChart, label: 'Progress', path: '/progress' },
-  { icon: Users, label: 'Community', path: '/community' },
-  { icon: Trophy, label: 'Achievements', path: '/achievements' },
-];
-
 const Sidebar = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-64 glass-panel mx-4 my-2 py-6 px-2 flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto space-y-1 px-2">
-        {sidebarItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
+    <aside className="fixed top-16 left-0 w-64 h-screen bg-background border-r z-10">
+      <div className="h-full p-4 flex flex-col">
+        <nav className="space-y-1">
+          <Link
+            to="/dashboard"
             className={cn(
-              "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200",
-              location.pathname === item.path 
-                ? "bg-primary text-primary-foreground font-medium" 
-                : "hover:bg-secondary text-foreground"
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/dashboard" && "bg-muted text-foreground"
             )}
           >
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
-      
-      <div className="mt-auto pt-4 border-t border-border px-2">
-        <button
-          onClick={() => navigate('/settings')}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left hover:bg-secondary transition-all duration-200"
-        >
-          <Settings className="h-5 w-5" />
-          <span>Settings</span>
-        </button>
+            <LayoutDashboard className="h-5 w-5" />
+            <span>Dashboard</span>
+          </Link>
+          
+          <div className="pt-4 pb-2">
+            <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Practice & Learn
+            </h3>
+          </div>
+          
+          <Link
+            to="/speaking-practice"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/speaking-practice" && "bg-muted text-foreground"
+            )}
+          >
+            <Mic className="h-5 w-5" />
+            <span>Speaking Practice</span>
+          </Link>
+          
+          <Link
+            to="/writing-practice"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/writing-practice" && "bg-muted text-foreground"
+            )}
+          >
+            <PenLine className="h-5 w-5" />
+            <span>Writing Practice</span>
+          </Link>
+          
+          <Link
+            to="/listening-practice"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/listening-practice" && "bg-muted text-foreground"
+            )}
+          >
+            <Headphones className="h-5 w-5" />
+            <span>Listening Practice</span>
+          </Link>
+          
+          <Link
+            to="/vocabulary"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/vocabulary" && "bg-muted text-foreground"
+            )}
+          >
+            <Brain className="h-5 w-5" />
+            <span>Vocabulary</span>
+          </Link>
+          
+          <Link
+            to="/conversation"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/conversation" && "bg-muted text-foreground"
+            )}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span>AI Conversation</span>
+          </Link>
+          
+          <Link
+            to="/lessons"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/lessons" && "bg-muted text-foreground"
+            )}
+          >
+            <BookText className="h-5 w-5" />
+            <span>Lessons</span>
+          </Link>
+          
+          <div className="pt-4 pb-2">
+            <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Community & Progress
+            </h3>
+          </div>
+          
+          <Link
+            to="/community"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/community" && "bg-muted text-foreground"
+            )}
+          >
+            <Users className="h-5 w-5" />
+            <span>Community</span>
+          </Link>
+          
+          <Link
+            to="/progress"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/progress" && "bg-muted text-foreground"
+            )}
+          >
+            <BarChart className="h-5 w-5" />
+            <span>Progress</span>
+          </Link>
+          
+          <Link
+            to="/achievements"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/achievements" && "bg-muted text-foreground"
+            )}
+          >
+            <Trophy className="h-5 w-5" />
+            <span>Achievements</span>
+          </Link>
+          
+          <div className="mt-auto pt-4">
+            <Link
+              to="/settings"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+                location.pathname === "/settings" && "bg-muted text-foreground"
+              )}
+            >
+              <Settings className="h-5 w-5" />
+              <span>Settings</span>
+            </Link>
+          </div>
+        </nav>
       </div>
     </aside>
   );

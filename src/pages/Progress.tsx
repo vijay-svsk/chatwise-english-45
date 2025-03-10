@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/services/databaseService';
@@ -49,7 +48,10 @@ const ProgressPage = () => {
     return sessions.filter(s => s.date.startsWith(date)).length;
   });
   
-  // Skill breakdown
+  // Define the valid session types
+  type SessionType = 'speaking' | 'listening' | 'pronunciation' | 'vocabulary' | 'reading' | 'writing';
+  
+  // Skill breakdown - updating to include all valid session types
   const skillBreakdown = [
     { 
       name: 'Speaking', 
@@ -69,11 +71,11 @@ const ProgressPage = () => {
     },
     { 
       name: 'Reading', 
-      progress: sessions.filter(s => s.type === 'reading').length / Math.max(totalSessions, 1) * 100
+      progress: sessions.filter(s => (s.type as SessionType) === 'reading').length / Math.max(totalSessions, 1) * 100
     },
     { 
       name: 'Writing', 
-      progress: sessions.filter(s => s.type === 'writing').length / Math.max(totalSessions, 1) * 100
+      progress: sessions.filter(s => (s.type as SessionType) === 'writing').length / Math.max(totalSessions, 1) * 100
     },
   ];
 

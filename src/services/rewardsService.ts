@@ -67,7 +67,7 @@ export const grantReward = async (event: RewardEvent): Promise<Reward> => {
         toast({
           title: "Level Up!",
           description: `Congratulations! You've reached level ${newLevel}!`,
-          variant: "success"
+          variant: "default"
         });
       }
     }
@@ -79,7 +79,7 @@ export const grantReward = async (event: RewardEvent): Promise<Reward> => {
       toast({
         title: "Reward Earned!",
         description: `+${points} points: ${description}`,
-        variant: "success"
+        variant: "default"
       });
     }
   }
@@ -149,11 +149,16 @@ const checkAndUnlockAchievements = async (userId: string) => {
       }
       
       const practiceDeays = new Set(
-        sessions.map(s => s.date.split('T')[0])
+        sessions.map(s => {
+          if (typeof s.date === 'string') {
+            return s.date.split('T')[0];
+          }
+          return '';
+        }).filter(Boolean)
       );
       
       // Check if user practiced on all 7 days
-      if ([...dates].every(date => practiceDeays.has(date))) {
+      if ([...dates].every(date => practiceDeays.has(date as string))) {
         unlocked = true;
       }
     }
@@ -167,7 +172,7 @@ const checkAndUnlockAchievements = async (userId: string) => {
       toast({
         title: "Achievement Unlocked!",
         description: `${achievement.title}: ${achievement.description}`,
-        variant: "success"
+        variant: "default"
       });
     }
   }

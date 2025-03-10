@@ -1,10 +1,9 @@
-
 import { openDB, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
 import { User, PracticeSession, GrammarCorrection, Reward, Lesson, Achievement, CommunityPost, CommunityComment, UserSettings } from '@/types/database';
 
 // Define the database schema
-interface LinguaLearnerDB extends IDBPDatabase {
+interface LinguaLearnerDB {
   users: 'readwrite';
   sessions: 'readwrite';
   corrections: 'readwrite';
@@ -16,13 +15,13 @@ interface LinguaLearnerDB extends IDBPDatabase {
 }
 
 class SQLiteService {
-  private db: Promise<LinguaLearnerDB>;
+  private db: Promise<IDBPDatabase<LinguaLearnerDB>>;
 
   constructor() {
     this.db = this.initDatabase();
   }
 
-  private async initDatabase(): Promise<LinguaLearnerDB> {
+  private async initDatabase(): Promise<IDBPDatabase<LinguaLearnerDB>> {
     return openDB<LinguaLearnerDB>('lingua-learner-db', 1, {
       upgrade(db) {
         // Create object stores if they don't exist
@@ -258,4 +257,3 @@ class SQLiteService {
 }
 
 export const sqliteDB = new SQLiteService();
-

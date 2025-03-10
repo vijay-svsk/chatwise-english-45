@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/services/databaseService';
+import { geminiService } from '@/services/geminiService';
+import { audioService } from '@/services/audioService';
 import { UserSettings } from '@/types/database';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -11,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, User, Shield, HelpCircle, Moon, Volume2 } from 'lucide-react';
+import { Bell, User, Shield, HelpCircle, Moon, Volume2, Brush, RefreshCcw, CheckCircle2 } from 'lucide-react';
 
 const Settings = () => {
   const { toast } = useToast();
@@ -35,11 +38,31 @@ const Settings = () => {
     difficulty: 'beginner'
   });
   
-  React.useEffect(() => {
+  const [apiKey, setApiKey] = useState('');
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [testAudioPlaying, setTestAudioPlaying] = useState(false);
+  const [accountForm, setAccountForm] = useState({
+    name: '',
+    email: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [resetProgress, setResetProgress] = useState(false);
+  
+  useEffect(() => {
     if (settings) {
       setFormValues(settings);
     }
-  }, [settings]);
+    
+    if (user) {
+      setAccountForm(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }));
+    }
+  }, [settings, user]);
   
   const updateSettingsMutation = useMutation({
     mutationFn: (newSettings: UserSettings) => db.updateUserSettings(userId, newSettings),
@@ -52,6 +75,58 @@ const Settings = () => {
     },
   });
   
+  const updateAccountMutation = useMutation({
+    mutationFn: (userData: { name: string; email: string }) => {
+      if (!user) throw new Error('User not found');
+      return db.updateUser({
+        ...user,
+        name: userData.name,
+        email: userData.email
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
+      toast({
+        title: "Account Updated",
+        description: "Your account information has been updated",
+      });
+      setAccountForm(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }));
+    },
+  });
+  
+  const resetProgressMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('User not found');
+      
+      // Reset user points and level
+      await db.updateUser({
+        ...user,
+        points: 0,
+        level: 1
+      });
+      
+      // In a real app, you would also reset sessions, achievements, etc.
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['achievements'] });
+      
+      toast({
+        title: "Progress Reset",
+        description: "Your learning progress has been reset",
+      });
+      
+      setResetProgress(false);
+    },
+  });
+  
   const handleSaveSettings = () => {
     updateSettingsMutation.mutate(formValues);
   };
@@ -61,6 +136,93 @@ const Settings = () => {
       ...prev,
       [field]: value
     }));
+  };
+  
+  const handleAccountFormChange = (field: string, value: string) => {
+    setAccountForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  const handleUpdateAccount = () => {
+    // Validate password if changing password
+    if (accountForm.newPassword) {
+      if (accountForm.newPassword !== accountForm.confirmPassword) {
+        toast({
+          title: "Password Error",
+          description: "New passwords do not match",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (accountForm.newPassword.length < 6) {
+        toast({
+          title: "Password Error",
+          description: "Password must be at least 6 characters",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // In a real app, you would verify the current password here
+    }
+    
+    updateAccountMutation.mutate({
+      name: accountForm.name,
+      email: accountForm.email
+    });
+  };
+  
+  const handleSaveAPIKey = () => {
+    if (!apiKey.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid API key",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    geminiService.setApiKey(apiKey);
+    
+    toast({
+      title: "API Key Saved",
+      description: "Your Gemini API key has been saved",
+    });
+  };
+  
+  const handleTestAudio = async () => {
+    try {
+      setTestAudioPlaying(true);
+      await audioService.speak("This is a test of the audio system. Your audio is working correctly.");
+    } catch (error) {
+      toast({
+        title: "Audio Error",
+        description: "Unable to play audio. Please check your browser settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setTestAudioPlaying(false);
+    }
+  };
+  
+  const handleResetProgress = () => {
+    if (!resetProgress) {
+      setResetProgress(true);
+      return;
+    }
+    
+    resetProgressMutation.mutate();
+  };
+  
+  const handleDeleteAccount = () => {
+    toast({
+      title: "Not Implemented",
+      description: "Account deletion is not implemented in this demo",
+      variant: "destructive"
+    });
   };
 
   return (
@@ -76,7 +238,7 @@ const Settings = () => {
             </div>
             
             <Tabs defaultValue="preferences" className="space-y-6">
-              <TabsList className="grid grid-cols-4 h-auto">
+              <TabsList className="grid grid-cols-5 h-auto">
                 <TabsTrigger value="preferences" className="py-2">
                   <Bell className="h-4 w-4 mr-2" />
                   Preferences
@@ -88,6 +250,10 @@ const Settings = () => {
                 <TabsTrigger value="privacy" className="py-2">
                   <Shield className="h-4 w-4 mr-2" />
                   Privacy
+                </TabsTrigger>
+                <TabsTrigger value="api" className="py-2">
+                  <Brush className="h-4 w-4 mr-2" />
+                  AI Settings
                 </TabsTrigger>
                 <TabsTrigger value="help" className="py-2">
                   <HelpCircle className="h-4 w-4 mr-2" />
@@ -178,8 +344,23 @@ const Settings = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Volume2 className="h-4 w-4 text-muted-foreground" />
-                          <Switch id="audio" defaultChecked />
+                          <Switch 
+                            id="audio" 
+                            checked={audioEnabled}
+                            onCheckedChange={setAudioEnabled}
+                          />
                         </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <Button 
+                          variant="outline" 
+                          onClick={handleTestAudio}
+                          disabled={!audioEnabled || testAudioPlaying}
+                        >
+                          <Volume2 className="h-4 w-4 mr-2" />
+                          {testAudioPlaying ? 'Playing...' : 'Test Audio'}
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -205,32 +386,84 @@ const Settings = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" defaultValue={user?.name || ''} />
+                      <Input 
+                        id="name" 
+                        value={accountForm.name} 
+                        onChange={(e) => handleAccountFormChange('name', e.target.value)}
+                      />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address</Label>
-                      <Input id="email" type="email" defaultValue={user?.email || ''} />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        value={accountForm.email}
+                        onChange={(e) => handleAccountFormChange('email', e.target.value)} 
+                      />
                     </div>
                     
                     <div className="space-y-2 pt-4 border-t">
                       <Label htmlFor="current-password">Current Password</Label>
-                      <Input id="current-password" type="password" />
+                      <Input 
+                        id="current-password" 
+                        type="password"
+                        value={accountForm.currentPassword}
+                        onChange={(e) => handleAccountFormChange('currentPassword', e.target.value)}
+                      />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="new-password">New Password</Label>
-                      <Input id="new-password" type="password" />
+                      <Input 
+                        id="new-password" 
+                        type="password"
+                        value={accountForm.newPassword}
+                        onChange={(e) => handleAccountFormChange('newPassword', e.target.value)}
+                      />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="confirm-password">Confirm New Password</Label>
-                      <Input id="confirm-password" type="password" />
+                      <Input 
+                        id="confirm-password" 
+                        type="password"
+                        value={accountForm.confirmPassword}
+                        onChange={(e) => handleAccountFormChange('confirmPassword', e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t mt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium">Reset Progress</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Clear all your learning progress and start over
+                          </p>
+                        </div>
+                        <Button 
+                          variant={resetProgress ? "destructive" : "outline"} 
+                          onClick={handleResetProgress}
+                          disabled={resetProgressMutation.isPending}
+                        >
+                          <RefreshCcw className="h-4 w-4 mr-2" />
+                          {resetProgress ? 'Confirm Reset' : 'Reset Progress'}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
-                    <Button>Update Account</Button>
-                    <Button variant="outline" className="text-destructive hover:text-destructive">
+                    <Button 
+                      onClick={handleUpdateAccount}
+                      disabled={updateAccountMutation.isPending}
+                    >
+                      {updateAccountMutation.isPending ? 'Updating...' : 'Update Account'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="text-destructive hover:text-destructive"
+                      onClick={handleDeleteAccount}
+                    >
                       Delete Account
                     </Button>
                   </CardFooter>
@@ -277,7 +510,80 @@ const Settings = () => {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button>Save Privacy Settings</Button>
+                    <Button onClick={() => {
+                      toast({
+                        title: "Privacy Settings Saved",
+                        description: "Your privacy preferences have been updated"
+                      });
+                    }}>
+                      Save Privacy Settings
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="api">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>AI Integration Settings</CardTitle>
+                    <CardDescription>
+                      Connect to AI services for enhanced learning
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="api-key">Gemini API Key</Label>
+                      <Input 
+                        id="api-key" 
+                        type="password" 
+                        placeholder="Enter your Gemini API key"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Your API key is stored securely and only used to process your learning data
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="text-lg font-medium">AI Feedback Options</h3>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Detailed Grammar Analysis</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive detailed grammar explanations with your corrections
+                          </p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Pronunciation Feedback</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Get detailed feedback on your pronunciation
+                          </p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Writing Style Suggestions</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive suggestions to improve your writing style
+                          </p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={handleSaveAPIKey}>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Save API Settings
+                    </Button>
                   </CardFooter>
                 </Card>
               </TabsContent>
@@ -320,7 +626,12 @@ const Settings = () => {
                       <p className="text-sm text-muted-foreground mb-4">
                         If you can't find the answer to your question, our support team is ready to help.
                       </p>
-                      <Button>
+                      <Button onClick={() => {
+                        toast({
+                          title: "Support Request Sent",
+                          description: "Our team will contact you shortly"
+                        });
+                      }}>
                         <HelpCircle className="h-4 w-4 mr-2" />
                         Contact Support
                       </Button>

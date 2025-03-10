@@ -19,7 +19,8 @@ export const initDatabase = async () => {
     points: 125,
     level: 2,
     streak: 5,
-    lastStreak: new Date().toISOString()
+    lastStreak: new Date().toISOString(),
+    lastLogin: new Date().toISOString() // Add missing lastLogin property
   });
   
   console.log("Created default user:", defaultUser.id);
@@ -195,15 +196,15 @@ export const initDatabase = async () => {
   
   // Create additional users for the leaderboard
   const additionalUsers = [
-    { name: "John Smith", email: "john.s@example.com", points: 320, level: 4 },
-    { name: "Emma Wilson", email: "emma.w@example.com", points: 450, level: 5 },
-    { name: "Michael Chen", email: "michael.c@example.com", points: 270, level: 3 },
-    { name: "Sophia Garcia", email: "sophia.g@example.com", points: 190, level: 2 },
-    { name: "David Kim", email: "david.k@example.com", points: 510, level: 6 },
-    { name: "Olivia Brown", email: "olivia.b@example.com", points: 380, level: 4 },
-    { name: "James Lee", email: "james.l@example.com", points: 150, level: 2 },
-    { name: "Emily Taylor", email: "emily.t@example.com", points: 420, level: 5 },
-    { name: "Robert Wang", email: "robert.w@example.com", points: 290, level: 3 }
+    { name: "John Smith", email: "john.s@example.com", points: 320, level: 4, lastLogin: new Date().toISOString() },
+    { name: "Emma Wilson", email: "emma.w@example.com", points: 450, level: 5, lastLogin: new Date().toISOString() },
+    { name: "Michael Chen", email: "michael.c@example.com", points: 270, level: 3, lastLogin: new Date().toISOString() },
+    { name: "Sophia Garcia", email: "sophia.g@example.com", points: 190, level: 2, lastLogin: new Date().toISOString() },
+    { name: "David Kim", email: "david.k@example.com", points: 510, level: 6, lastLogin: new Date().toISOString() },
+    { name: "Olivia Brown", email: "olivia.b@example.com", points: 380, level: 4, lastLogin: new Date().toISOString() },
+    { name: "James Lee", email: "james.l@example.com", points: 150, level: 2, lastLogin: new Date().toISOString() },
+    { name: "Emily Taylor", email: "emily.t@example.com", points: 420, level: 5, lastLogin: new Date().toISOString() },
+    { name: "Robert Wang", email: "robert.w@example.com", points: 290, level: 3, lastLogin: new Date().toISOString() }
   ];
   
   for (const user of additionalUsers) {

@@ -15,6 +15,36 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { BookOpen, Award, Mic, MessageSquare, BarChart, LineChart, BookMarked, Calendar } from 'lucide-react';
+import { PracticeSession } from '@/types/database';
+
+// Define proper TypeScript interfaces for our data
+interface PerformanceDataPoint {
+  date: string;
+  pronunciation: number;
+  fluency: number;
+  vocabulary: number;
+  grammar: number;
+  count: number;
+}
+
+interface SkillDataPoint {
+  skill: string;
+  value: number;
+  fullMark: number;
+}
+
+interface ActivityDataPoint {
+  date: string;
+  count: number;
+}
+
+interface StatsData {
+  totalSessions: number;
+  totalMinutes: number;
+  avgScore: number;
+  strongestSkill: string;
+  weakestSkill: string;
+}
 
 const ProgressPage = () => {
   const { toast } = useToast();
@@ -35,10 +65,10 @@ const ProgressPage = () => {
     queryFn: () => db.getRewardsByUserId(userId),
   });
   
-  const [performanceData, setPerformanceData] = useState([]);
-  const [skillData, setSkillData] = useState([]);
-  const [activityData, setActivityData] = useState([]);
-  const [statsData, setStatsData] = useState({
+  const [performanceData, setPerformanceData] = useState<PerformanceDataPoint[]>([]);
+  const [skillData, setSkillData] = useState<SkillDataPoint[]>([]);
+  const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
+  const [statsData, setStatsData] = useState<StatsData>({
     totalSessions: 0,
     totalMinutes: 0,
     avgScore: 0,
@@ -49,23 +79,23 @@ const ProgressPage = () => {
   useEffect(() => {
     if (sessions.length > 0) {
       // Process session data for charts
-      processSessionData(sessions);
+      processSessionData(sessions as PracticeSession[]);
     } else {
       // Use mock data if no sessions exist
       generateMockData();
     }
   }, [sessions]);
   
-  const processSessionData = (sessions) => {
+  const processSessionData = (sessions: PracticeSession[]) => {
     // Process for performance chart (last 14 days)
-    const last14Days = [];
+    const last14Days: string[] = [];
     for (let i = 0; i < 14; i++) {
       const date = new Date();
       date.setDate(date.getDate() - (13 - i));
       last14Days.push(date.toISOString().split('T')[0]);
     }
     
-    const performanceByDay = {};
+    const performanceByDay: Record<string, PerformanceDataPoint> = {};
     last14Days.forEach(day => {
       performanceByDay[day] = {
         date: new Date(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -129,7 +159,12 @@ const ProgressPage = () => {
     });
     
     // Process for skill radar
-    const skillCategories = {
+    interface SkillCategory {
+      sum: number;
+      count: number;
+    }
+    
+    const skillCategories: Record<string, SkillCategory> = {
       speaking: { sum: 0, count: 0 },
       listening: { sum: 0, count: 0 },
       reading: { sum: 0, count: 0 },
@@ -154,7 +189,7 @@ const ProgressPage = () => {
     });
     
     // Process for activity calendar (3 months)
-    const activityByDay = {};
+    const activityByDay: Record<string, number> = {};
     const today = new Date();
     const threeMonthsAgo = new Date(today);
     threeMonthsAgo.setDate(today.getDate() - 90);
@@ -179,7 +214,11 @@ const ProgressPage = () => {
     const totalSessions = sessions.length;
     const totalMinutes = sessions.reduce((total, session) => total + (session.duration || 0), 0);
     
-    const scoresByType = {};
+    interface ScoresByType {
+      [key: string]: number[];
+    }
+    
+    const scoresByType: ScoresByType = {};
     sessions.forEach(session => {
       if (!scoresByType[session.type]) {
         scoresByType[session.type] = [];
@@ -187,7 +226,7 @@ const ProgressPage = () => {
       scoresByType[session.type].push(session.score || 0);
     });
     
-    const avgScores = {};
+    const avgScores: Record<string, number> = {};
     let strongestSkill = '';
     let weakestSkill = '';
     let highestAvg = 0;
@@ -208,8 +247,8 @@ const ProgressPage = () => {
       }
     });
     
-    const avgScore = Object.values(scoresByType).flat().reduce((sum, score) => sum + score, 0) / 
-                    Object.values(scoresByType).flat().length;
+    const allScores = Object.values(scoresByType).flat();
+    const avgScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
     
     setPerformanceData(processedPerformanceData);
     setSkillData(processedSkillData);

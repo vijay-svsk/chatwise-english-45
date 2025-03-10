@@ -1,4 +1,3 @@
-
 import { sqliteDB } from './sqliteService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,7 +19,7 @@ export const initDatabase = async () => {
     level: 2,
     streak: 5,
     lastStreak: new Date().toISOString(),
-    lastLogin: new Date().toISOString() // Add missing lastLogin property
+    lastLogin: new Date().toISOString()
   });
   
   console.log("Created default user:", defaultUser.id);
@@ -142,7 +141,7 @@ export const initDatabase = async () => {
   console.log("Created default lessons");
   
   // Create practice sessions for the user
-  const sessionTypes = ["speaking", "listening", "pronunciation", "vocabulary", "reading", "writing"];
+  const sessionTypes = ["speaking", "listening", "pronunciation", "vocabulary", "reading", "writing", "grammar"];
   const sessions = [];
   
   // Create sessions for the last 30 days

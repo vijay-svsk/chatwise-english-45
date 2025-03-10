@@ -31,7 +31,7 @@ export interface UserSettings {
 export interface PracticeSession {
   id: string;
   userId: string;
-  type: 'speaking' | 'listening' | 'pronunciation' | 'vocabulary' | 'reading' | 'writing';
+  type: 'speaking' | 'listening' | 'pronunciation' | 'vocabulary' | 'reading' | 'writing' | 'grammar';
   score: number;
   duration: number;
   date: string;

@@ -147,6 +147,7 @@ const ProgressPage = () => {
           fluency: Math.round(day.fluency / day.count),
           vocabulary: Math.round(day.vocabulary / day.count),
           grammar: Math.round(day.grammar / day.count),
+          count: day.count
         };
       }
       return {
@@ -155,6 +156,7 @@ const ProgressPage = () => {
         fluency: 0,
         vocabulary: 0,
         grammar: 0,
+        count: 0
       };
     });
     
@@ -174,7 +176,7 @@ const ProgressPage = () => {
     };
     
     sessions.forEach(session => {
-      if (skillCategories[session.type]) {
+      if (session.type in skillCategories) {
         skillCategories[session.type].sum += session.score || 70;
         skillCategories[session.type].count++;
       }
@@ -248,7 +250,9 @@ const ProgressPage = () => {
     });
     
     const allScores = Object.values(scoresByType).flat();
-    const avgScore = allScores.reduce((sum, score) => sum + score, 0) / allScores.length;
+    const avgScore = allScores.length > 0 
+      ? allScores.reduce((sum, score) => sum + score, 0) / allScores.length 
+      : 0;
     
     setPerformanceData(processedPerformanceData);
     setSkillData(processedSkillData);
@@ -274,6 +278,7 @@ const ProgressPage = () => {
         fluency: 60 + Math.floor(Math.random() * 30),
         vocabulary: 60 + Math.floor(Math.random() * 30),
         grammar: 60 + Math.floor(Math.random() * 30),
+        count: 1
       };
     });
     

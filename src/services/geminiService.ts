@@ -1,3 +1,4 @@
+
 import { API_KEYS, API_ENDPOINTS } from '../config/appConfig';
 
 // This is a mock implementation since we don't have actual API keys
@@ -48,31 +49,46 @@ class GeminiService {
     }
 
     try {
-      // In a real implementation, this would be an actual API call
-      // const response = await fetch(this.apiEndpoint, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${this.apiKey}`
-      //   },
-      //   body: JSON.stringify({
-      //     prompt: options.prompt,
-      //     temperature: options.temperature || 0.7,
-      //     max_tokens: options.maxTokens || 150
-      //   })
-      // });
+      // Actual API implementation using gemini-2.0-flash model
+      const response = await fetch(this.apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: options.prompt }]
+          }],
+          generationConfig: {
+            temperature: options.temperature || 0.7,
+            maxOutputTokens: options.maxTokens || 150
+          }
+        })
+      });
       
-      // const data = await response.json();
-      // return {
-      //   text: data.choices[0].text,
-      //   usage: data.usage
-      // };
-
-      // For now, return mock data
-      return this.getMockResponse(options.prompt);
+      if (!response.ok) {
+        console.error('Error response from Gemini API:', await response.text());
+        throw new Error(`Failed to generate text with Gemini: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Extract text from the Gemini response
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      return {
+        text: text,
+        usage: {
+          promptTokens: options.prompt.length / 4, // Approximate token count
+          completionTokens: text.length / 4,
+          totalTokens: (options.prompt.length + text.length) / 4
+        }
+      };
     } catch (error) {
       console.error('Error calling Gemini API:', error);
-      throw new Error('Failed to generate text with Gemini');
+      console.log('Falling back to mock response');
+      return this.getMockResponse(options.prompt);
     }
   }
 

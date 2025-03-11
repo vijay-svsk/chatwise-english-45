@@ -6,12 +6,12 @@
 
 // API Keys
 export const API_KEYS = {
-  GEMINI: import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDvpbV34TFp2hGXWF5Hl9zONjlKeKoAuv8",
+  GEMINI: import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDSImndtFyj90Esrzwgvr_7eyWqM9APICY",
 };
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  GEMINI: "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent",
+  GEMINI: "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
 };
 
 // Application Settings
@@ -21,7 +21,7 @@ export const APP_SETTINGS = {
   TRANSCRIPTION_CONFIDENCE_THRESHOLD: 0.75,
   DEFAULT_VOICE_RATE: 1.0,
   DEFAULT_VOICE_PITCH: 1.0,
-  DEFAULT_THEME: "system", // Added the missing DEFAULT_THEME property
+  DEFAULT_THEME: "system", 
 };
 
 // Feature Flags

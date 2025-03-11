@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Mic, MessageSquare, BarChart, Award } from 'lucide-react';
+import { ChevronRight, Mic, MessageSquare, BarChart, Award, Bot } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -17,6 +17,11 @@ const Index = () => {
       icon: MessageSquare,
       title: 'AI conversation partner',
       description: 'Have natural conversations with our AI assistant to build confidence and fluency.'
+    },
+    {
+      icon: Bot,
+      title: 'Virtual AI Teacher',
+      description: 'Get personalized help from your AI teacher who can answer all your language questions.'
     },
     {
       icon: BarChart,
@@ -42,7 +47,6 @@ const Index = () => {
         <nav className="hidden md:flex items-center space-x-8">
           <a href="#features" className="text-foreground hover:text-primary transition-colors">Features</a>
           <a href="#how-it-works" className="text-foreground hover:text-primary transition-colors">How it works</a>
-          <a href="#testimonials" className="text-foreground hover:text-primary transition-colors">Testimonials</a>
         </nav>
         
         <div className="flex items-center space-x-2">
@@ -75,10 +79,10 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="lg"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/virtual-teacher')}
               className="h-14 px-8 text-lg font-medium"
             >
-              Try the Demo
+              Try Virtual Teacher
             </Button>
           </div>
         </div>
@@ -106,7 +110,7 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-slide-up">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-slide-up">
             {features.map((feature, index) => (
               <div key={index} className="glass-panel p-8">
                 <div className="w-12 h-12 flex items-center justify-center bg-primary/10 text-primary rounded-xl mb-6">
@@ -171,14 +175,24 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Join thousands of learners who are already enhancing their English skills with Echo's AI-powered platform.
           </p>
-          <Button 
-            size="lg" 
-            onClick={() => navigate('/register')}
-            className="h-14 px-8 text-lg font-medium button-shine"
-          >
-            Start Learning Now
-            <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button 
+              size="lg" 
+              onClick={() => navigate('/register')}
+              className="h-14 px-8 text-lg font-medium button-shine"
+            >
+              Start Learning Now
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={() => navigate('/virtual-teacher')}
+              className="h-14 px-8 text-lg font-medium"
+            >
+              Try Virtual Teacher
+            </Button>
+          </div>
         </div>
       </section>
       
@@ -194,7 +208,6 @@ const Index = () => {
             <nav className="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-6 md:mb-0">
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
               <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How it works</a>
-              <a href="#testimonials" className="text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
               <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
               <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms</a>
             </nav>

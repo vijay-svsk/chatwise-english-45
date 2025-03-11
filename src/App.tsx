@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
@@ -18,6 +19,7 @@ import VocabularyBuilding from "./pages/VocabularyBuilding";
 import Lessons from "./pages/Lessons";
 import Achievements from "./pages/Achievements";
 import Conversation from "./pages/Conversation";
+import VirtualTeacher from "./pages/VirtualTeacher";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import WritingPractice from "./pages/WritingPractice";
@@ -57,6 +59,7 @@ function App() {
             <Route path="/lessons" element={<Lessons />} />
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/conversation" element={<Conversation />} />
+            <Route path="/virtual-teacher" element={<VirtualTeacher />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

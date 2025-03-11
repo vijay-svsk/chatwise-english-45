@@ -21,6 +21,7 @@ export const APP_SETTINGS = {
   TRANSCRIPTION_CONFIDENCE_THRESHOLD: 0.75,
   DEFAULT_VOICE_RATE: 1.0,
   DEFAULT_VOICE_PITCH: 1.0,
+  DEFAULT_THEME: "system", // Added the missing DEFAULT_THEME property
 };
 
 // Feature Flags

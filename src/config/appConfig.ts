@@ -6,7 +6,7 @@
 
 // API Keys
 export const API_KEYS = {
-  GEMINI: process.env.GEMINI_API_KEY || "AIzaSyDvpbV34TFp2hGXWF5Hl9zONjlKeKoAuv8",
+  GEMINI: import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDvpbV34TFp2hGXWF5Hl9zONjlKeKoAuv8",
 };
 
 // API Endpoints

@@ -5,6 +5,7 @@ import { Lightbulb, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { FeedbackCorrection } from '@/types/database';
+import { geminiService } from '@/services/geminiService';
 
 interface AIFeedbackProps {
   text: string;
@@ -46,20 +47,25 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
     setError(null);
     
     try {
-      // Call the Gemini API through our backend proxy
-      const response = await fetch('/api/analyze-language', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
+      const geminiApiKey = geminiService.getApiKey();
+      let data;
       
-      if (!response.ok) {
-        throw new Error('Failed to analyze text');
+      if (geminiApiKey) {
+        data = await geminiService.generateFeedback(text, 'speaking');
+      } else {
+        const response = await fetch('/api/analyze-language', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to analyze text');
+        }
+        
+        data = await response.json();
       }
       
-      const data = await response.json();
-      
-      // Process the analysis data
       const feedbackResult: AIFeedbackResult = processFeedback(data, text);
       
       setFeedback(feedbackResult);
@@ -77,7 +83,6 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
       console.error('Error generating feedback', err);
       setError("Failed to generate feedback. Please try again later.");
       
-      // Fallback to mock data for demo purposes
       fallbackToMockFeedback();
     } finally {
       setLoading(false);
@@ -85,29 +90,21 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
   };
   
   const processFeedback = (apiData: any, originalText: string): AIFeedbackResult => {
-    // In a real implementation, this would process the Gemini API response
-    // For now, we'll use structured mock data that mimics what we'd expect
-    
-    // Extract sentences for correction samples
     const sentences = originalText.split(/[.!?]+/).filter(s => s.trim().length > 0);
     
-    // Find potential errors for correction examples
     const errorTypes = ['grammar', 'vocabulary', 'pronunciation'];
     const corrections = [];
     
     if (sentences.length > 0) {
-      // Take 1-3 sentences for correction examples
       const sampleCount = Math.min(3, sentences.length);
       for (let i = 0; i < sampleCount; i++) {
         const sentence = sentences[i].trim();
         const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
         
-        // Only create corrections for sentences with potential issues
         if (sentence.length > 10) {
           let corrected = sentence;
           let explanation = "";
           
-          // Create realistic corrections based on common English errors
           if (sentence.includes(" i ")) {
             corrected = sentence.replace(" i ", " I ");
             explanation = "Always capitalize the pronoun 'I'.";
@@ -144,20 +141,18 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
   };
   
   const fallbackToMockFeedback = () => {
-    // Show a warning toast that we're using mock data
     toast({
       title: "Using Demo Mode",
       description: "API unavailable. Showing sample feedback instead.",
       variant: "destructive"
     });
     
-    // Create a realistic mock feedback
     const mockFeedback: AIFeedbackResult = {
-      pronunciation: Math.floor(Math.random() * 20) + 75, // 75-95
-      grammar: Math.floor(Math.random() * 25) + 70, // 70-95
-      vocabulary: Math.floor(Math.random() * 30) + 65, // 65-95
-      fluency: Math.floor(Math.random() * 20) + 75, // 75-95
-      overall: Math.floor(Math.random() * 15) + 80, // 80-95
+      pronunciation: Math.floor(Math.random() * 20) + 75,
+      grammar: Math.floor(Math.random() * 25) + 70,
+      vocabulary: Math.floor(Math.random() * 30) + 65,
+      fluency: Math.floor(Math.random() * 20) + 75,
+      overall: Math.floor(Math.random() * 15) + 80,
       suggestions: [
         "Try to speak more slowly and clearly to improve pronunciation.",
         "Practice using more precise vocabulary to express your ideas.",
@@ -191,7 +186,6 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
       return <span className="text-green-500">{original}</span>;
     }
     
-    // Simple diff to highlight changes
     const originalWords = original.split(' ');
     const correctedWords = corrected.split(' ');
     

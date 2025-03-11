@@ -1,3 +1,4 @@
+import { API_KEYS, API_ENDPOINTS } from '../config/appConfig';
 
 // This is a mock implementation since we don't have actual API keys
 // In a real implementation, you would use the actual Gemini API
@@ -18,7 +19,8 @@ export interface GeminiResponse {
 }
 
 class GeminiService {
-  private apiKey: string | null = null;
+  private apiKey: string | null = API_KEYS.GEMINI;
+  private apiEndpoint: string = API_ENDPOINTS.GEMINI;
   private static instance: GeminiService;
 
   private constructor() {}
@@ -35,6 +37,10 @@ class GeminiService {
     console.log('Gemini API key set successfully');
   }
 
+  getApiKey(): string | null {
+    return this.apiKey;
+  }
+
   async generateText(options: GeminiRequestOptions): Promise<GeminiResponse> {
     if (!this.apiKey) {
       console.warn('Gemini API key not set, using mock responses');
@@ -43,7 +49,7 @@ class GeminiService {
 
     try {
       // In a real implementation, this would be an actual API call
-      // const response = await fetch('https://api.gemini.com/v1/completions', {
+      // const response = await fetch(this.apiEndpoint, {
       //   method: 'POST',
       //   headers: {
       //     'Content-Type': 'application/json',
@@ -130,6 +136,22 @@ class GeminiService {
       structure: type === 'writing' ? Math.floor(65 + Math.random() * 35) : null,
       clarity: type === 'writing' ? Math.floor(70 + Math.random() * 30) : null,
       overall: Math.floor(70 + Math.random() * 30)
+    };
+  }
+
+  async analyzeAudio(audioTranscript: string): Promise<any> {
+    const prompt = `Analyze the following English speech transcript and provide detailed feedback on pronunciation, grammar, vocabulary, and fluency. 
+    Rate each category on a scale of 0-100. Also provide 3-5 specific suggestions for improvement: "${audioTranscript}"`;
+
+    const response = await this.generateText({
+      prompt: prompt,
+      temperature: 0.3,
+      maxTokens: 500
+    });
+
+    return {
+      feedback: response.text,
+      scores: this.generateMockScores('speaking')
     };
   }
 }

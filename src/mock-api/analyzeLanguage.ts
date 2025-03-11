@@ -1,6 +1,7 @@
 
 import { LanguageAnalysisRequest, LanguageAnalysisResponse, analyzeLanguage } from "@/services/languageAnalysisService";
 import { db } from '@/services/databaseService';
+import { API_ENDPOINTS } from '../config/appConfig';
 
 /**
  * This is a mock API endpoint that simulates what would be implemented
@@ -31,7 +32,7 @@ export const mockAnalyzeLanguageAPI = async (request: LanguageAnalysisRequest): 
  * In a real implementation with a backend, the API call would look like:
  * 
  * export const analyzeLanguageAPI = async (text: string) => {
- *   const response = await fetch('/api/analyze-language', {
+ *   const response = await fetch(API_ENDPOINTS.GEMINI, {
  *     method: 'POST',
  *     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer YOUR_API_KEY' },
  *     body: JSON.stringify({ 

@@ -18,7 +18,7 @@ import {
   Trophy,
   Gamepad2,
   GraduationCap,
-  SpeakerWaveform
+  AudioWaveform
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -74,7 +74,7 @@ const Sidebar = () => {
               location.pathname === "/word-pronunciation" && "bg-muted text-foreground"
             )}
           >
-            <SpeakerWaveform className="h-5 w-5" />
+            <AudioWaveform className="h-5 w-5" />
             <span>Word Pronunciation</span>
           </Link>
           

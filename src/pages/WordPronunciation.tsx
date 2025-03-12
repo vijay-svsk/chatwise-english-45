@@ -56,7 +56,7 @@ const WordPronunciation = () => {
       4. The part of speech (grammar category)
       5. The opposite/antonym (if applicable)
       6. The root word (if applicable)
-      7. 2-3 example sentences using the word
+      7. 3-4 example sentences using the word
       
       Format your response as JSON with the following structure:
       {
@@ -85,6 +85,15 @@ const WordPronunciation = () => {
         
         const parsedData = JSON.parse(jsonMatch[0]);
         setWordData(parsedData);
+        
+        // Automatically speak the word when data is loaded
+        setTimeout(() => {
+          audioService.speak(parsedData.word, {
+            rate: 0.8,
+            pitch: 1.0,
+            volume: 1.0
+          });
+        }, 500);
       } catch (jsonError) {
         console.error("Failed to parse JSON:", jsonError);
         toast({
@@ -119,13 +128,35 @@ const WordPronunciation = () => {
       
       <main className="pt-24 pb-16 pl-72 pr-6">
         <div className="max-w-5xl mx-auto animate-fade-in">
-          <h1 className="text-3xl font-display font-semibold mb-6">Word Pronunciation Practice</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-display font-semibold">Word Pronunciation Practice</h1>
+            
+            {wordData && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  if (wordData) {
+                    audioService.speak(wordData.word, {
+                      rate: 0.8,
+                      pitch: 1.0,
+                      volume: 1.0
+                    });
+                  }
+                }}
+              >
+                <Volume2 className="h-4 w-4" />
+                Hear Pronunciation
+              </Button>
+            )}
+          </div>
           
-          <Card className="mb-6">
-            <CardHeader className="pb-3">
-              <CardTitle>Search for a Word</CardTitle>
+          <Card className="mb-6 overflow-hidden border-t-4 border-primary/70">
+            <CardHeader className="pb-3 bg-muted/50">
+              <CardTitle>Find a Word to Practice</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <form onSubmit={handleSearch} className="flex gap-2">
                 <div className="flex-1">
                   <Input
@@ -153,49 +184,66 @@ const WordPronunciation = () => {
             </CardContent>
           </Card>
           
-          {wordData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <WordBreakdown 
-                word={wordData.word}
-                syllables={wordData.syllables}
-                phonetic={wordData.phonetic}
-              />
-              
-              <WordDetails 
-                meaning={wordData.meaning}
-                grammar={wordData.grammar}
-                opposite={wordData.opposite}
-                rootWord={wordData.rootWord}
-                examples={wordData.examples}
-              />
+          {isLoading && (
+            <div className="flex justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                <p className="text-muted-foreground">Looking up word details...</p>
+              </div>
+            </div>
+          )}
+          
+          {!isLoading && !wordData && !searchTerm && (
+            <div className="text-center py-12 px-4">
+              <div className="max-w-md mx-auto">
+                <h3 className="text-xl font-semibold mb-2">Welcome to Word Pronunciation Practice</h3>
+                <p className="text-muted-foreground mb-4">
+                  Search for any English word to see its details, hear its pronunciation, and practice saying it correctly.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-6">
+                  {['contribution', 'fascinating', 'opportunity', 'enthusiastic', 'development', 'sophisticated'].map((word) => (
+                    <Button 
+                      key={word}
+                      variant="outline"
+                      size="sm"
+                      className="text-sm"
+                      onClick={() => {
+                        setSearchTerm(word);
+                        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                        setTimeout(() => handleSearch(fakeEvent), 100);
+                      }}
+                    >
+                      {word}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
           
           {wordData && (
-            <RecordPronunciation 
-              word={wordData.word}
-              onFeedback={handlePronunciationFeedback}
-            />
-          )}
-          
-          {feedbackData && (
-            <Card className="mt-6 border-t-4 border-primary">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Pronunciation Feedback</span>
-                  <span className="text-lg">
-                    Score: <span className={`font-bold ${feedbackData.score >= 80 ? 'text-green-500' : feedbackData.score >= 60 ? 'text-amber-500' : 'text-red-500'}`}>
-                      {feedbackData.score}/100
-                    </span>
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="text-muted-foreground">{feedbackData.text}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <WordBreakdown 
+                  word={wordData.word}
+                  syllables={wordData.syllables}
+                  phonetic={wordData.phonetic}
+                />
+                
+                <WordDetails 
+                  meaning={wordData.meaning}
+                  grammar={wordData.grammar}
+                  opposite={wordData.opposite}
+                  rootWord={wordData.rootWord}
+                  examples={wordData.examples}
+                />
+              </div>
+              
+              <RecordPronunciation 
+                word={wordData.word}
+                onFeedback={handlePronunciationFeedback}
+              />
+            </div>
           )}
         </div>
       </main>

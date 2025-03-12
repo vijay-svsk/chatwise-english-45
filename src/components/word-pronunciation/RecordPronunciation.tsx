@@ -1,12 +1,14 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Mic, StopCircle, Loader2, Volume2, Check, X, AlertCircle } from 'lucide-react';
+import { Mic, StopCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { geminiService } from '@/services/geminiService';
 import { audioService } from '@/services/audioService';
+import { useAudioRecording } from '@/hooks/useAudioRecording';
+import { FeedbackCard } from '@/components/pronunciation/FeedbackCard';
 
 interface RecordPronunciationProps {
   word: string;
@@ -26,61 +28,8 @@ interface PronunciationFeedback {
 }
 
 const RecordPronunciation: React.FC<RecordPronunciationProps> = ({ word, onFeedback }) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [feedback, setFeedback] = useState<PronunciationFeedback | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
-      
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        analyzeAudio(audioBlob);
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setFeedback(null);
-      
-      audioService.playAttentionSound();
-      
-      toast({
-        title: "Recording Started",
-        description: `Say the word "${word}" clearly.`,
-      });
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      toast({
-        title: "Microphone Access Error",
-        description: "Please allow microphone access to use this feature.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setIsAnalyzing(true);
-      
-      audioService.playSuccessSound();
-    }
-  };
   
   const analyzeAudio = async (audioBlob: Blob) => {
     try {
@@ -150,10 +99,10 @@ const RecordPronunciation: React.FC<RecordPronunciationProps> = ({ word, onFeedb
       const fallbackFeedback = generateFallbackFeedback(word, word);
       setFeedback(fallbackFeedback);
       onFeedback(fallbackFeedback.feedback, fallbackFeedback.score);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
+  
+  const { isRecording, isAnalyzing, startRecording, stopRecording } = useAudioRecording(analyzeAudio);
   
   const generateFallbackFeedback = (word: string, transcript: string): PronunciationFeedback => {
     const isCorrect = word.toLowerCase() === transcript.toLowerCase();
@@ -220,97 +169,6 @@ const RecordPronunciation: React.FC<RecordPronunciationProps> = ({ word, onFeedb
     return result;
   };
   
-  const renderFeedbackCard = () => {
-    if (!feedback) return null;
-    
-    const scoreColor = 
-      feedback.score >= 90 ? 'text-green-500' :
-      feedback.score >= 75 ? 'text-blue-500' :
-      feedback.score >= 60 ? 'text-amber-500' : 'text-red-500';
-    
-    return (
-      <div className="mt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Your Pronunciation Results</h3>
-          <span className={`text-xl font-bold ${scoreColor}`}>{feedback.score}/100</span>
-        </div>
-        
-        <div className="bg-muted/30 p-4 rounded-lg">
-          <p className="mb-2">{feedback.feedback}</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {feedback.correctSounds.length > 0 && (
-              <div className="bg-green-500/10 p-3 rounded-md border border-green-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <h4 className="font-medium">Correct Sounds</h4>
-                </div>
-                <ul className="list-disc pl-5 space-y-1">
-                  {feedback.correctSounds.map((sound, i) => (
-                    <li key={i} className="text-sm">{sound}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {feedback.incorrectSounds.length > 0 && (
-              <div className="bg-red-500/10 p-3 rounded-md border border-red-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <X className="h-4 w-4 text-red-500" />
-                  <h4 className="font-medium">Sounds to Improve</h4>
-                </div>
-                <ul className="list-disc pl-5 space-y-1">
-                  {feedback.incorrectSounds.map((sound, i) => (
-                    <li key={i} className="text-sm">{sound}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-4">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              <h4 className="font-medium">Tips for Improvement</h4>
-            </div>
-            <ul className="list-disc pl-5 space-y-1">
-              {feedback.tips.map((tip, i) => (
-                <li key={i} className="text-sm">{tip}</li>
-              ))}
-            </ul>
-          </div>
-          
-          {feedback.commonErrors.length > 0 && (
-            <div className="mt-4 border-t border-border pt-4">
-              <h4 className="font-medium mb-2">Common Errors to Watch For</h4>
-              <div className="space-y-3">
-                {feedback.commonErrors.map((error, i) => (
-                  <div key={i} className="bg-background p-3 rounded-md">
-                    <p className="text-sm font-medium text-muted-foreground">{error.description}</p>
-                    <p className="text-sm mt-1">{error.correction}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-6 flex justify-center">
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={() => {
-                audioService.speak(word, { rate: 0.8, pitch: 1.0, volume: 1.0 });
-              }}
-            >
-              <Volume2 className="h-4 w-4" />
-              Hear Correct Pronunciation
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
   return (
     <Card>
       <CardHeader>
@@ -353,7 +211,7 @@ const RecordPronunciation: React.FC<RecordPronunciationProps> = ({ word, onFeedb
             )}
           </Button>
           
-          {renderFeedbackCard()}
+          {feedback && <FeedbackCard feedback={feedback} word={word} />}
         </div>
       </CardContent>
     </Card>

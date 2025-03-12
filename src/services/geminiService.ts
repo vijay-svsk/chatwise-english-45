@@ -1,4 +1,3 @@
-
 import { API_KEYS, API_ENDPOINTS } from '../config/appConfig';
 
 type GeminiRequestOptions = {
@@ -59,9 +58,7 @@ class GeminiService {
           }],
           generationConfig: {
             temperature: options.temperature || 0.7,
-            maxOutputTokens: options.maxTokens || 150,
-            responseMimeType: "application/json",
-            responseFormat: "JSON"
+            maxOutputTokens: options.maxTokens || 150
           }
         })
       });

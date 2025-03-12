@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bot, Volume2 } from 'lucide-react';
+import { Bot, Volume2, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Message } from './types';
 
@@ -17,6 +17,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 }) => {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleSpeakClick = () => {
+    speakMessage(message.content);
   };
 
   return (
@@ -56,9 +60,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-5 w-5 rounded-full"
-              onClick={() => speakMessage(message.content)}
+              onClick={handleSpeakClick}
+              title={isTeacherSpeaking ? "AI is speaking" : "Speak this message"}
             >
-              <Volume2 className="h-3 w-3" />
+              {isTeacherSpeaking ? (
+                <Pause className="h-3 w-3" />
+              ) : (
+                <Volume2 className="h-3 w-3" />
+              )}
             </Button>
           )}
         </div>

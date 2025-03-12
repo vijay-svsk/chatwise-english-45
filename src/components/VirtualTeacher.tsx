@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Volume2, VolumeX } from 'lucide-react';
+import { Bot, Volume2, VolumeX, Mic, MicOff, Pause } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { geminiService } from '@/services/geminiService';
 import { useToast } from '@/hooks/use-toast';
 import MessageList from './virtual-teacher/MessageList';
@@ -25,7 +27,9 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     currentTranscript,
     startListening,
     stopListening,
+    toggleListening,
     speakMessage,
+    stopSpeaking,
     registerSpeechCallback
   } = useSpeechServices();
   
@@ -193,11 +197,48 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
-            {isTeacherSpeaking ? (
-              <Volume2 className="h-5 w-5 text-primary animate-pulse" />
-            ) : (
-              <VolumeX className="h-5 w-5 text-muted-foreground" />
-            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={toggleListening}
+            >
+              {isListening ? (
+                <>
+                  <MicOff className="h-4 w-4 text-destructive" />
+                  Stop Listening
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4 text-green-500" />
+                  Start Listening
+                </>
+              )}
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={isTeacherSpeaking ? stopSpeaking : () => {
+                const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
+                if (lastAiMessage) {
+                  speakMessage(lastAiMessage.content);
+                }
+              }}
+            >
+              {isTeacherSpeaking ? (
+                <>
+                  <Pause className="h-4 w-4 text-primary" />
+                  Stop Speaking
+                </>
+              ) : (
+                <>
+                  <Volume2 className="h-4 w-4 text-primary" />
+                  Speak Last Message
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -226,19 +267,66 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
       </CardContent>
       
       <CardFooter className="p-3 border-t mt-auto">
-        <div className="w-full text-center">
-          {isListening ? (
-            <p className="text-sm text-muted-foreground">
-              I'm listening to you. Just speak naturally and I'll respond.
-              {currentTranscript && (
-                <span className="block mt-1 font-medium">"...{currentTranscript.slice(-30)}"</span>
+        <div className="w-full flex flex-col items-center">
+          <div className="flex gap-2 mb-2">
+            <Button
+              variant={isListening ? "destructive" : "default"}
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={toggleListening}
+            >
+              {isListening ? (
+                <>
+                  <MicOff className="h-4 w-4" /> 
+                  Turn Off Microphone
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" /> 
+                  Turn On Microphone
+                </>
               )}
-            </p>
-          ) : isTeacherSpeaking ? (
-            <p className="text-sm text-muted-foreground">I'm speaking. Please wait...</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Click the avatar to start speaking with me again.</p>
-          )}
+            </Button>
+            
+            <Button
+              variant={isTeacherSpeaking ? "destructive" : "default"}
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={isTeacherSpeaking ? stopSpeaking : () => {
+                const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
+                if (lastAiMessage) {
+                  speakMessage(lastAiMessage.content);
+                }
+              }}
+            >
+              {isTeacherSpeaking ? (
+                <>
+                  <Pause className="h-4 w-4" /> 
+                  Pause AI Speaking
+                </>
+              ) : (
+                <>
+                  <Volume2 className="h-4 w-4" /> 
+                  Speak Last Response
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <p className="text-sm text-muted-foreground text-center">
+            {isListening ? (
+              <>
+                I'm listening to you. Just speak naturally and I'll respond.
+                {currentTranscript && (
+                  <span className="block mt-1 font-medium">"...{currentTranscript.slice(-30)}"</span>
+                )}
+              </>
+            ) : isTeacherSpeaking ? (
+              "I'm speaking. Please wait..."
+            ) : (
+              "Click the microphone button to start speaking with me."
+            )}
+          </p>
         </div>
       </CardFooter>
     </Card>

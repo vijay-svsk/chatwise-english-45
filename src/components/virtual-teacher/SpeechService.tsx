@@ -11,7 +11,19 @@ export function useSpeechServices() {
   const speechCallbackRef = useRef<((text: string) => void) | null>(null);
   const { toast } = useToast();
 
-  // Define all our functions before using them in useEffect
+  // Define stop listening first since it's used in other functions
+  const stopListening = useCallback(() => {
+    if (!recognitionRef.current) return;
+    
+    try {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      setCurrentTranscript('');
+    } catch (error) {
+      console.error('Failed to stop speech recognition:', error);
+    }
+  }, []);
+
   // Start speech recognition
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
@@ -29,19 +41,6 @@ export function useSpeechServices() {
       setIsListening(false);
     }
   }, [toast]);
-
-  // Stop speech recognition
-  const stopListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-    
-    try {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      setCurrentTranscript('');
-    } catch (error) {
-      console.error('Failed to stop speech recognition:', error);
-    }
-  }, []);
 
   // Toggle speech recognition
   const toggleListening = useCallback(() => {
@@ -123,6 +122,14 @@ export function useSpeechServices() {
       });
     }
   }, [isTeacherSpeaking, isListening, stopListening, startListening, toast]);
+
+  // Stop AI speaking
+  const stopSpeaking = useCallback(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsTeacherSpeaking(false);
+    }
+  }, []);
 
   // Register a callback for speech recognition results
   const registerSpeechCallback = useCallback((callback: (text: string) => void) => {
@@ -229,6 +236,7 @@ export function useSpeechServices() {
     stopListening,
     toggleListening,
     speakMessage,
+    stopSpeaking,
     registerSpeechCallback
   };
 }

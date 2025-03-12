@@ -11,7 +11,7 @@ export function useSpeechServices() {
   const speechCallbackRef = useRef<((text: string) => void) | null>(null);
   const { toast } = useToast();
 
-  // Define stop listening first since it's used in other functions
+  // Define stopListening first since it's used in other functions
   const stopListening = useCallback(() => {
     if (!recognitionRef.current) return;
     

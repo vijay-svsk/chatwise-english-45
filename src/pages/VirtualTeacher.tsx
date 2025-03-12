@@ -27,7 +27,7 @@ const VirtualTeacherPage = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <VirtualTeacher initialGreeting="Hello! I'm your interactive AI English teacher. I can see you and help you learn English. What would you like to know today?" />
+                <VirtualTeacher initialGreeting="Hello! I'm your interactive AI English teacher. I can help you learn English through conversation. What would you like to know today?" />
               </div>
               
               <div className="space-y-6">

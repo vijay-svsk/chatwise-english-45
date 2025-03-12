@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -16,7 +15,8 @@ import {
   Brain,
   BookText,
   Trophy,
-  Gamepad2
+  Gamepad2,
+  GraduationCap
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -42,6 +42,17 @@ const Sidebar = () => {
               Practice & Learn
             </h3>
           </div>
+          
+          <Link
+            to="/virtual-teacher"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/virtual-teacher" && "bg-muted text-foreground"
+            )}
+          >
+            <GraduationCap className="h-5 w-5" />
+            <span>Virtual Teacher</span>
+          </Link>
           
           <Link
             to="/speaking-practice"

@@ -1,50 +1,9 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSpeechServices } from './SpeechService';
 import { useToast } from '@/hooks/use-toast';
 import { geminiService } from '@/services/geminiService';
 import { audioService } from '@/services/audioService';
 import { Message } from './types';
-
-// Knowledge base to enhance teacher's responses
-const KNOWLEDGE_BASE = {
-  greetings: [
-    "Hello! I'm your AI English teacher. How can I help you today?",
-    "Hi there! Ready to practice English?",
-    "Welcome back! What would you like to learn today?",
-    "Greetings! I'm here to help with your English learning journey."
-  ],
-  grammar: {
-    presentSimple: "The present simple tense is used for habits, facts, and regular actions. Example: 'She works in London.'",
-    presentContinuous: "The present continuous tense is used for actions happening now or temporary situations. Example: 'She is working from home this week.'",
-    pastSimple: "The past simple tense is used for completed actions in the past. Example: 'She worked in Paris last year.'",
-    pastContinuous: "The past continuous tense is used for actions that were in progress at a specific time in the past. Example: 'She was working when I called.'",
-    futureSimple: "The future simple tense with 'will' is used for predictions or spontaneous decisions. Example: 'I think it will rain tomorrow.'",
-    articles: "English has three articles: 'a', 'an', and 'the'. 'A' and 'an' are indefinite articles used before non-specific nouns. 'The' is the definite article used for specific nouns."
-  },
-  vocabulary: {
-    levels: "English vocabulary is often categorized as basic, intermediate, advanced, and academic.",
-    learning: "Effective vocabulary learning involves using new words in context, regular revision, and creating associations."
-  },
-  pronunciation: {
-    vowelSounds: "English has around 20 vowel sounds including short vowels, long vowels, and diphthongs.",
-    consonantSounds: "English has about 24 consonant sounds. Some, like 'th', can be difficult for non-native speakers.",
-    word_stress: "In English, word stress is important. Incorrect stress can make words difficult to understand."
-  },
-  conversation: {
-    formalGreetings: "Formal greetings include 'Good morning/afternoon/evening', 'Hello', and 'How do you do?'",
-    informalGreetings: "Informal greetings include 'Hi', 'Hey', and 'What's up?'",
-    smallTalk: "Common small talk topics include the weather, recent events, work, and hobbies."
-  },
-  idioms: {
-    common: [
-      "Break a leg - Good luck",
-      "It's raining cats and dogs - It's raining heavily",
-      "Speak of the devil - When the person you just talked about appears",
-      "Cost an arm and a leg - Very expensive"
-    ]
-  }
-};
 
 export const useTeacherLogic = (initialGreeting: string = '') => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -67,7 +26,6 @@ export const useTeacherLogic = (initialGreeting: string = '') => {
     registerSpeechCallback
   } = useSpeechServices();
 
-  // First, declare the speakMessage function before it's used
   const speakMessage = useCallback((text: string, messageId?: string) => {
     if (messageId) {
       setMessages(prev => prev.map(msg => ({
@@ -79,7 +37,6 @@ export const useTeacherLogic = (initialGreeting: string = '') => {
     speakWithService(text, messageId);
   }, [speakWithService]);
 
-  // Now we can use speakMessage in subsequent function declarations
   const replayLastResponse = useCallback(() => {
     const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai' && !m.isProcessing);
     if (lastAiMessage) {
@@ -114,24 +71,20 @@ export const useTeacherLogic = (initialGreeting: string = '') => {
     try {
       audioService.playSuccessSound();
       
-      // Enhanced prompt with knowledge base context
-      const knowledgePrompt = `As a helpful and encouraging English teacher with the following knowledge base:
-      
-Grammar: Basic tenses, articles, prepositions, conditionals
-Vocabulary: Common words, idioms, phrasal verbs, collocations
-Pronunciation: Vowels, consonants, word stress, intonation
-Conversation: Greetings, small talk, discussions, debates
+      // Simplified prompt for Gemini API
+      const teacherPrompt = `You are a friendly and patient AI English teacher. Your role is to:
+1. Provide clear, simple explanations for English concepts
+2. Use everyday examples that students can relate to
+3. Be encouraging and supportive
+4. Keep responses concise and easy to understand
+5. If asked about grammar or vocabulary, include 1-2 simple examples
 
-Please respond to this student in a clear, conversational and helpful way. 
-If they ask about grammar, provide simple explanations with examples.
-If they ask about vocabulary, explain the meaning and provide example sentences.
-If they ask about pronunciation, describe how to position the mouth and tongue.
-Focus on helping them learn English naturally: "${speech.trim()}"`;
+Respond to this student's question or statement: "${speech.trim()}"`;
       
       const response = await geminiService.generateText({
-        prompt: knowledgePrompt,
+        prompt: teacherPrompt,
         temperature: 0.7,
-        maxTokens: 500
+        maxTokens: 300 // Reduced for more concise responses
       });
       
       const aiResponse = response.text;
@@ -183,7 +136,7 @@ Focus on helping them learn English naturally: "${speech.trim()}"`;
     
     const initialMessage: Message = {
       id: '1',
-      content: initialGreeting || KNOWLEDGE_BASE.greetings[0],
+      content: initialGreeting,
       sender: 'ai',
       timestamp: new Date()
     };

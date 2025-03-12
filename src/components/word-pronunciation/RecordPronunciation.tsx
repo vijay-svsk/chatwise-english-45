@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,10 +15,10 @@ interface RecordPronunciationProps {
 
 interface PronunciationFeedback {
   score: number;
-  feedback: string;
   correctSounds: string[];
   incorrectSounds: string[];
   tips: string[];
+  feedback: string;
   commonErrors: {
     description: string;
     correction: string;
@@ -116,7 +117,7 @@ const RecordPronunciation: React.FC<RecordPronunciationProps> = ({ word, onFeedb
       const response = await geminiService.generateText({
         prompt,
         temperature: 0.3,
-        maxTokens: 500
+        maxTokens: 800
       });
       
       const jsonMatch = response.text.match(/\{[\s\S]*\}/);

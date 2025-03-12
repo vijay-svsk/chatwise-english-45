@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,26 +48,81 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
     setError(null);
     
     try {
-      const geminiApiKey = geminiService.getApiKey();
-      let data;
+      // Improved prompt for Gemini API
+      const analysisPrompt = `You are a professional English language teacher analyzing a student's spoken English. 
+
+Analyze the following English speech transcript and provide detailed feedback:
+"${text}"
+
+Return your analysis in JSON format with the following structure:
+{
+  "pronunciation": [score from 0-100],
+  "grammar": [score from 0-100],
+  "vocabulary": [score from 0-100],
+  "fluency": [score from 0-100],
+  "overall": [score from 0-100],
+  "suggestions": [array of 3-5 specific improvement suggestions],
+  "corrections": [
+    {
+      "original": [the original problematic phrase or sentence with errors],
+      "corrected": [the corrected version],
+      "explanation": [brief explanation of the grammar rule or reason for correction],
+      "rule": [name of the grammar rule that was violated, if applicable]
+    }
+  ]
+}
+
+Be detailed in your analysis and make sure to identify specific grammar errors in the text. For each error, provide the original text, the corrected version, and an explanation of the grammar rule that was violated.`;
+
+      let feedbackResult: AIFeedbackResult;
       
-      if (geminiApiKey) {
-        data = await geminiService.generateFeedback(text, 'speaking');
-      } else {
-        const response = await fetch('/api/analyze-language', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-        });
+      const response = await geminiService.generateText({
+        prompt: analysisPrompt,
+        temperature: 0.2,
+        maxTokens: 800
+      });
+      
+      // Try to parse JSON response from Gemini
+      try {
+        // Find JSON in the response
+        const jsonMatch = response.text.match(/\{[\s\S]*\}/);
         
-        if (!response.ok) {
-          throw new Error('Failed to analyze text');
+        if (jsonMatch) {
+          const parsedResponse = JSON.parse(jsonMatch[0]);
+          feedbackResult = {
+            pronunciation: parsedResponse.pronunciation || 0,
+            grammar: parsedResponse.grammar || 0,
+            vocabulary: parsedResponse.vocabulary || 0,
+            fluency: parsedResponse.fluency || 0,
+            overall: parsedResponse.overall || 0,
+            suggestions: parsedResponse.suggestions || [],
+            corrections: (parsedResponse.corrections || []).map((correction: any) => ({
+              original: correction.original || "",
+              corrected: correction.corrected || "",
+              explanation: correction.explanation || "",
+              rule: correction.rule || "Grammar Rule"
+            }))
+          };
+        } else {
+          throw new Error("No valid JSON found in response");
         }
+      } catch (parseError) {
+        console.error("Failed to parse Gemini response:", parseError);
         
-        data = await response.json();
+        // Extract whatever useful information we can from the text response
+        const responseText = response.text;
+        
+        // Fallback to manually extracting information from the text
+        feedbackResult = {
+          pronunciation: extractScore(responseText, "pronunciation") || 75,
+          grammar: extractScore(responseText, "grammar") || 70,
+          vocabulary: extractScore(responseText, "vocabulary") || 80,
+          fluency: extractScore(responseText, "fluency") || 75,
+          overall: extractScore(responseText, "overall") || 75,
+          suggestions: extractSuggestions(responseText),
+          corrections: extractCorrections(responseText, text)
+        };
       }
-      
-      const feedbackResult: AIFeedbackResult = processFeedback(data, text);
       
       setFeedback(feedbackResult);
       
@@ -89,55 +145,144 @@ const AIFeedback: React.FC<AIFeedbackProps> = ({
     }
   };
   
-  const processFeedback = (apiData: any, originalText: string): AIFeedbackResult => {
-    const sentences = originalText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  // Helper functions to extract information from text responses
+  const extractScore = (text: string, category: string): number | null => {
+    const regex = new RegExp(`${category}[^0-9]*([0-9]+)`, 'i');
+    const match = text.match(regex);
+    if (match && match[1]) {
+      const score = parseInt(match[1], 10);
+      return score >= 0 && score <= 100 ? score : null;
+    }
+    return null;
+  };
+  
+  const extractSuggestions = (text: string): string[] => {
+    const suggestions: string[] = [];
     
-    const errorTypes = ['grammar', 'vocabulary', 'pronunciation'];
-    const corrections = [];
+    // Try to find a suggestions/improvements section
+    const suggestionsSection = text.match(/suggestions?:?\s*([\s\S]*?)(?:\n\n|\n[A-Z]|$)/i);
     
-    if (sentences.length > 0) {
-      const sampleCount = Math.min(3, sentences.length);
-      for (let i = 0; i < sampleCount; i++) {
-        const sentence = sentences[i].trim();
-        const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+    if (suggestionsSection && suggestionsSection[1]) {
+      // Split by numbered points or bullet points
+      const items = suggestionsSection[1].split(/\n\s*[\d\.\-\*]\s*/);
+      
+      for (const item of items) {
+        const cleaned = item.trim();
+        if (cleaned && cleaned.length > 10) {
+          suggestions.push(cleaned);
+        }
+      }
+    }
+    
+    // If we couldn't find structured suggestions, look for sentences with suggestion keywords
+    if (suggestions.length < 2) {
+      const sentences = text.split(/[.!?]+/);
+      for (const sentence of sentences) {
+        if (
+          /should|try to|improve|practice|consider|recommend/i.test(sentence) && 
+          sentence.length > 15 && 
+          !suggestions.includes(sentence.trim())
+        ) {
+          suggestions.push(sentence.trim());
+        }
+      }
+    }
+    
+    // Still need more suggestions?
+    if (suggestions.length < 3) {
+      suggestions.push("Practice speaking more clearly and at a moderate pace.");
+      suggestions.push("Work on your grammar by reading English texts aloud.");
+      suggestions.push("Expand your vocabulary by learning new words and using them in sentences.");
+    }
+    
+    return suggestions.slice(0, 5); // Return up to 5 suggestions
+  };
+  
+  const extractCorrections = (text: string, originalText: string): FeedbackCorrection[] => {
+    const corrections: FeedbackCorrection[] = [];
+    
+    // Split original text into sentences for analysis
+    const sentences = originalText.split(/[.!?]+/).filter(s => s.trim().length > 5);
+    
+    // Look for correction patterns in the text
+    const correctionMatches = text.match(/(?:incorrect|error|mistake|should be)[^.!?]*?["']([^"']+)["'][^.!?]*?["']([^"']+)["']/gi);
+    
+    if (correctionMatches) {
+      for (const match of correctionMatches) {
+        // Extract original and corrected text
+        const parts = match.match(/["']([^"']+)["'][^.!?]*?["']([^"']+)["']/i);
         
-        if (sentence.length > 10) {
-          let corrected = sentence;
-          let explanation = "";
-          
-          if (sentence.includes(" i ")) {
-            corrected = sentence.replace(" i ", " I ");
-            explanation = "Always capitalize the pronoun 'I'.";
-          } else if (/\s(is|are|was|were)\s/.test(sentence) && Math.random() > 0.5) {
-            explanation = "Check subject-verb agreement in this sentence.";
-          } else if (apiData?.errorPatterns?.some((pattern: string) => sentence.includes(pattern))) {
-            explanation = `Consider revising this sentence for ${errorType} issues.`;
-          } else {
-            explanation = `This sentence has good ${errorType}.`;
-          }
-          
+        if (parts && parts.length >= 3) {
           corrections.push({
-            original: sentence,
-            corrected: corrected,
-            explanation: explanation
+            original: parts[1],
+            corrected: parts[2],
+            explanation: match.replace(parts[0], "").trim(),
+            rule: determineGrammarRule(match)
           });
         }
       }
     }
     
-    return {
-      pronunciation: apiData?.scores?.pronunciation || Math.floor(Math.random() * 20) + 75,
-      grammar: apiData?.scores?.grammar || Math.floor(Math.random() * 25) + 70,
-      vocabulary: apiData?.scores?.vocabulary || Math.floor(Math.random() * 30) + 65,
-      fluency: apiData?.scores?.fluency || Math.floor(Math.random() * 20) + 75,
-      overall: apiData?.scores?.overall || Math.floor(Math.random() * 15) + 80,
-      suggestions: apiData?.suggestions || [
-        "Try to speak more slowly to improve pronunciation clarity.",
-        "Practice using more varied vocabulary to express your ideas.",
-        "Work on using more complex sentence structures when appropriate."
-      ],
-      corrections: apiData?.corrections || corrections
-    };
+    // If no corrections found, try another approach with original sentences
+    if (corrections.length === 0 && sentences.length > 0) {
+      // Identify some potential grammar issues in the original text
+      for (const sentence of sentences) {
+        if (sentence.trim().length < 10) continue;
+        
+        // Check for common errors
+        if (/ i /.test(sentence)) {
+          corrections.push({
+            original: sentence,
+            corrected: sentence.replace(/ i /g, " I "),
+            explanation: "Always capitalize the pronoun 'I'.",
+            rule: "Capitalization"
+          });
+        } else if (/\b(is|are|was|were|has|have|do|does|did)\b/i.test(sentence)) {
+          // Check for potential subject-verb agreement issues
+          corrections.push({
+            original: sentence,
+            corrected: sentence,
+            explanation: "Check for subject-verb agreement in this sentence.",
+            rule: "Subject-Verb Agreement"
+          });
+        }
+      }
+    }
+    
+    // Still no corrections? Add at least one general feedback
+    if (corrections.length === 0 && sentences.length > 0) {
+      corrections.push({
+        original: sentences[0],
+        corrected: sentences[0],
+        explanation: "Your grammar is generally correct in this phrase, but try to speak more clearly.",
+        rule: "Pronunciation"
+      });
+    }
+    
+    return corrections;
+  };
+  
+  const determineGrammarRule = (text: string): string => {
+    const rules = [
+      { pattern: /tense/i, name: "Verb Tense" },
+      { pattern: /plural|singular/i, name: "Plural/Singular" },
+      { pattern: /article|a|an|the/i, name: "Articles" },
+      { pattern: /preposition|in|on|at/i, name: "Prepositions" },
+      { pattern: /subject.+verb|verb.+subject/i, name: "Subject-Verb Agreement" },
+      { pattern: /pronoun/i, name: "Pronouns" },
+      { pattern: /capital/i, name: "Capitalization" },
+      { pattern: /word order/i, name: "Word Order" },
+      { pattern: /conditional/i, name: "Conditionals" },
+      { pattern: /passive|active/i, name: "Active/Passive Voice" }
+    ];
+    
+    for (const rule of rules) {
+      if (rule.pattern.test(text)) {
+        return rule.name;
+      }
+    }
+    
+    return "Grammar Rule";
   };
   
   const fallbackToMockFeedback = () => {

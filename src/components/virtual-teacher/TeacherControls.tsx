@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mic, MicOff, Pause, Play } from 'lucide-react';
+import { Mic, MicOff, Pause, Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -10,6 +10,7 @@ interface TeacherControlsProps {
   isProcessing: boolean;
   toggleListening: () => void;
   stopSpeaking: () => void;
+  stopAll: () => void;
   replayLastResponse: () => void;
   messages: any[];
 }
@@ -20,6 +21,7 @@ const TeacherControls: React.FC<TeacherControlsProps> = ({
   isProcessing,
   toggleListening,
   stopSpeaking,
+  stopAll,
   replayLastResponse,
   messages
 }) => {
@@ -77,6 +79,17 @@ const TeacherControls: React.FC<TeacherControlsProps> = ({
               Speak Last Response
             </>
           )}
+        </Button>
+        
+        <Button
+          variant="destructive"
+          size="sm"
+          className="flex items-center gap-1"
+          onClick={stopAll}
+          disabled={!isListening && !isTeacherSpeaking}
+        >
+          <Square className="h-4 w-4" />
+          Stop All
         </Button>
       </div>
     </div>

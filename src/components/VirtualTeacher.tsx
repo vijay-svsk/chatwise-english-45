@@ -19,6 +19,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     currentTranscript,
     toggleListening,
     stopSpeaking,
+    stopAll,
     speakMessage,
     replayLastResponse
   } = useTeacherLogic(initialGreeting);
@@ -32,6 +33,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
           isProcessing={isProcessing}
           toggleListening={toggleListening}
           stopSpeaking={stopSpeaking}
+          stopAll={stopAll}
           replayLastResponse={replayLastResponse}
           messages={messages}
         />
@@ -68,6 +70,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
           isProcessing={isProcessing}
           toggleListening={toggleListening}
           stopSpeaking={stopSpeaking}
+          stopAll={stopAll}
           replayLastResponse={replayLastResponse}
           currentTranscript={currentTranscript}
           messages={messages}

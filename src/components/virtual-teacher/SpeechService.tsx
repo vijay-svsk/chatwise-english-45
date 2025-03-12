@@ -45,6 +45,16 @@ export function useSpeechServices() {
     toast
   );
 
+  // Stop everything - both listening and speaking
+  const stopAll = useCallback(() => {
+    if (isListening) {
+      stopSpeechRecognition();
+    }
+    if (isTeacherSpeaking) {
+      stopSpeaking();
+    }
+  }, [isListening, isTeacherSpeaking, stopSpeechRecognition, stopSpeaking]);
+
   return {
     isListening,
     isTeacherSpeaking,
@@ -55,6 +65,7 @@ export function useSpeechServices() {
     toggleListening,
     speakMessage,
     stopSpeaking,
+    stopAll,
     registerSpeechCallback
   };
 }

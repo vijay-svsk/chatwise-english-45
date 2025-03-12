@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mic, MicOff, Pause, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Pause, Square, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface TeacherFooterProps {
@@ -9,6 +9,7 @@ interface TeacherFooterProps {
   isProcessing: boolean;
   toggleListening: () => void;
   stopSpeaking: () => void;
+  stopAll: () => void;
   replayLastResponse: () => void;
   currentTranscript: string;
   messages: any[];
@@ -20,6 +21,7 @@ const TeacherFooter: React.FC<TeacherFooterProps> = ({
   isProcessing,
   toggleListening,
   stopSpeaking,
+  stopAll,
   replayLastResponse,
   currentTranscript,
   messages
@@ -65,6 +67,17 @@ const TeacherFooter: React.FC<TeacherFooterProps> = ({
               Speak Last Response
             </>
           )}
+        </Button>
+        
+        <Button
+          variant="destructive"
+          size="sm"
+          className="flex items-center gap-1"
+          onClick={stopAll}
+          disabled={!isListening && !isTeacherSpeaking}
+        >
+          <Square className="h-4 w-4" />
+          Stop All Activity
         </Button>
       </div>
       

@@ -23,30 +23,35 @@ export function useSpeechServices() {
     speechCallbackRef.current = callback;
   }, []);
 
-  // Initialize speech recognition 
+  // Initialize speech recognition with pre-declared functions to avoid circular references
   const {
     isListening,
     currentTranscript,
-    startListening,
-    stopListening,
+    startListening: startSpeechRecognition,
+    stopListening: stopSpeechRecognition,
     toggleListening
   } = useSpeechRecognition(handleSpeechResult, toast);
 
-  // Initialize speech synthesis
+  // Initialize speech synthesis with extracted functions
   const {
     isTeacherSpeaking,
     currentMessageId,
     speakMessage,
     stopSpeaking
-  } = useSpeechSynthesis(isListening, startListening, stopListening, toast);
+  } = useSpeechSynthesis(
+    isListening, 
+    startSpeechRecognition, 
+    stopSpeechRecognition, 
+    toast
+  );
 
   return {
     isListening,
     isTeacherSpeaking,
     currentTranscript,
     currentMessageId,
-    startListening,
-    stopListening,
+    startListening: startSpeechRecognition,
+    stopListening: stopSpeechRecognition,
     toggleListening,
     speakMessage,
     stopSpeaking,

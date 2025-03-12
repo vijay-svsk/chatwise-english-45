@@ -67,6 +67,26 @@ export const useTeacherLogic = (initialGreeting: string = '') => {
     registerSpeechCallback
   } = useSpeechServices();
 
+  // First, declare the speakMessage function before it's used
+  const speakMessage = useCallback((text: string, messageId?: string) => {
+    if (messageId) {
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        isSpeaking: msg.id === messageId
+      })));
+    }
+    
+    speakWithService(text, messageId);
+  }, [speakWithService]);
+
+  // Now we can use speakMessage in subsequent function declarations
+  const replayLastResponse = useCallback(() => {
+    const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai' && !m.isProcessing);
+    if (lastAiMessage) {
+      speakMessage(lastAiMessage.content, lastAiMessage.id);
+    }
+  }, [messages, speakMessage]);
+
   const processUserSpeech = useCallback(async (speech: string) => {
     if (!speech || speech.trim().length < 2 || processingRef.current) return;
     
@@ -157,24 +177,6 @@ Focus on helping them learn English naturally: "${speech.trim()}"`;
       processingRef.current = false;
     }
   }, [toast, speakMessage]);
-
-  const speakMessage = useCallback((text: string, messageId?: string) => {
-    if (messageId) {
-      setMessages(prev => prev.map(msg => ({
-        ...msg,
-        isSpeaking: msg.id === messageId
-      })));
-    }
-    
-    speakWithService(text, messageId);
-  }, [speakWithService]);
-
-  const replayLastResponse = useCallback(() => {
-    const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai' && !m.isProcessing);
-    if (lastAiMessage) {
-      speakMessage(lastAiMessage.content, lastAiMessage.id);
-    }
-  }, [messages, speakMessage]);
 
   useEffect(() => {
     if (isInitialized) return;

@@ -9,12 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface MessageListProps {
   messages: Message[];
   speakMessage: (text: string) => void;
+  stopSpeaking: () => void;
   isTeacherSpeaking: boolean;
 }
 
 const MessageList: React.FC<MessageListProps> = ({ 
   messages, 
   speakMessage,
+  stopSpeaking,
   isTeacherSpeaking
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,15 +80,27 @@ const MessageList: React.FC<MessageListProps> = ({
             
             {message.sender === 'ai' && !message.isProcessing && (
               <div className="mt-2 flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 rounded-full"
-                  onClick={() => speakMessage(message.content)}
-                  title="Play message"
-                >
-                  <Volume2 className="h-4 w-4" />
-                </Button>
+                {isTeacherSpeaking && message.isSpeaking ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full text-destructive"
+                    onClick={stopSpeaking}
+                    title="Stop speaking"
+                  >
+                    <VolumeX className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full"
+                    onClick={() => speakMessage(message.content)}
+                    title="Play message"
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
           </div>

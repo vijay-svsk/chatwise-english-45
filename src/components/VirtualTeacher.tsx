@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Volume2, VolumeX, Mic, MicOff, Pause } from 'lucide-react';
+import { Bot, Volume2, VolumeX, Mic, MicOff, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { geminiService } from '@/services/geminiService';
 import { useToast } from '@/hooks/use-toast';
@@ -13,30 +13,34 @@ import { useSpeechServices } from './virtual-teacher/SpeechService';
 import { audioService } from '@/services/audioService';
 
 const VirtualTeacher: React.FC<VirtualTeacherProps> = ({ 
-  initialGreeting = "Hello! I'm your AI English teacher. I'm listening to you, so just speak naturally and I'll help you learn English. What would you like to discuss today?",
-  autoListen = true
+  initialGreeting = "Hello! I'm your AI English teacher. I'm here to help you learn English. What would you like to discuss today?",
+  autoListen = false
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const processingRef = useRef(false);
   const { toast } = useToast();
-  const firstInteractionRef = useRef(false);
   
   const {
     isListening,
     isTeacherSpeaking,
     currentTranscript,
+    currentMessageId,
     startListening,
     stopListening,
     toggleListening,
-    speakMessage,
+    speakMessage: speakWithService,
     stopSpeaking,
     registerSpeechCallback
   } = useSpeechServices();
   
   // Process user speech and get AI response
   const processUserSpeech = useCallback(async (speech: string) => {
-    if (!speech || speech.trim().length < 2 || isProcessing) return;
+    if (!speech || speech.trim().length < 2 || processingRef.current) return;
+    
+    processingRef.current = true;
+    setIsProcessing(true);
     
     // Add user message to the conversation
     const userMessage: Message = {
@@ -47,7 +51,6 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setIsProcessing(true);
     
     // Add a placeholder for the AI response with loading state
     const aiMessageId = (Date.now() + 1).toString();
@@ -83,9 +86,9 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
         return msg;
       }));
       
-      // Speak the response - make sure we're doing this consistently
+      // Speak the response
       setTimeout(() => {
-        speakMessage(aiResponse);
+        speakMessage(aiResponse, aiMessageId);
       }, 300);
       
     } catch (error) {
@@ -105,7 +108,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
       }));
       
       // Speak the error message
-      speakMessage(errorMessage);
+      speakMessage(errorMessage, aiMessageId);
       
       toast({
         title: "Error",
@@ -114,11 +117,28 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
       });
     } finally {
       setIsProcessing(false);
+      processingRef.current = false;
     }
-  }, [isProcessing, speakMessage, toast]);
+  }, [toast]);
   
-  // Initialize messages with greeting and register speech callback
+  // Speak message and update UI
+  const speakMessage = useCallback((text: string, messageId?: string) => {
+    // Update the message that's currently being spoken
+    if (messageId) {
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        isSpeaking: msg.id === messageId
+      })));
+    }
+    
+    // Use the speech service to speak
+    speakWithService(text, messageId);
+  }, [speakWithService]);
+  
+  // Initialize messages with greeting
   useEffect(() => {
+    if (isInitialized) return;
+    
     const initialMessage: Message = {
       id: '1',
       content: initialGreeting,
@@ -127,74 +147,46 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     };
     
     setMessages([initialMessage]);
+    setIsInitialized(true);
     
     // Register the speech callback
     registerSpeechCallback(processUserSpeech);
     
-    // After a short delay, speak the greeting
+    // Speak the greeting message after a brief delay
     const timer = setTimeout(() => {
-      try {
-        speakMessage(initialGreeting);
-      } catch (error) {
-        console.error('Error speaking initial greeting:', error);
-      }
+      speakMessage(initialGreeting, '1');
     }, 1000);
     
-    // Start listening after the greeting is spoken
-    const listenTimer = setTimeout(() => {
-      if (autoListen && !firstInteractionRef.current) {
-        firstInteractionRef.current = true;
-        try {
-          startListening();
-        } catch (error) {
-          console.error('Error starting listening:', error);
-        }
-      }
-    }, 3000);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [initialGreeting, speakMessage, registerSpeechCallback, processUserSpeech, isInitialized]);
+  
+  // Handle auto-listen after greeting
+  useEffect(() => {
+    if (!isInitialized || !autoListen) return;
+    
+    let listenTimer: NodeJS.Timeout;
+    
+    // Only start listening if we're not already listening and not speaking
+    if (!isListening && !isTeacherSpeaking) {
+      listenTimer = setTimeout(() => {
+        startListening();
+      }, 3000);
+    }
     
     return () => {
-      if (messageTimeoutRef.current) {
-        clearTimeout(messageTimeoutRef.current);
-      }
-      clearTimeout(timer);
       clearTimeout(listenTimer);
     };
-  }, [initialGreeting, speakMessage, startListening, autoListen, registerSpeechCallback, processUserSpeech]);
-
-  // Show current transcript as it's being processed
+  }, [isInitialized, autoListen, isListening, isTeacherSpeaking, startListening]);
+  
+  // Update speaking state when currentMessageId changes
   useEffect(() => {
-    if (currentTranscript && currentTranscript.length > 0 && isListening) {
-      // Update the last message if it's a user message and still being processed
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.sender === 'user' && lastMessage.isProcessing) {
-        setMessages(prev => 
-          prev.map((msg, idx) => 
-            idx === prev.length - 1 ? { ...msg, content: currentTranscript } : msg
-          )
-        );
-      } else {
-        // Add a new user message for the current transcript
-        setMessages(prev => [...prev, {
-          id: `transcript-${Date.now()}`,
-          content: currentTranscript,
-          sender: 'user',
-          timestamp: new Date(),
-          isProcessing: true
-        }]);
-      }
-      
-      // Set a timeout to process this speech after a pause
-      if (messageTimeoutRef.current) {
-        clearTimeout(messageTimeoutRef.current);
-      }
-      
-      messageTimeoutRef.current = setTimeout(() => {
-        if (currentTranscript.trim().length > 3) {
-          processUserSpeech(currentTranscript);
-        }
-      }, 1500); // Reduced from 2000ms to 1500ms for faster response
-    }
-  }, [currentTranscript, isListening, messages, processUserSpeech]);
+    setMessages(prev => prev.map(msg => ({
+      ...msg,
+      isSpeaking: msg.id === currentMessageId
+    })));
+  }, [currentMessageId]);
 
   return (
     <Card className="w-full h-[700px] flex flex-col glass-panel overflow-hidden">
@@ -218,6 +210,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
               size="sm" 
               className={`flex items-center gap-1 ${isListening ? 'border-green-500' : ''}`}
               onClick={toggleListening}
+              disabled={isProcessing}
             >
               {isListening ? (
                 <>
@@ -235,23 +228,24 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className={`flex items-center gap-1 ${isTeacherSpeaking ? 'border-primary' : ''}`}
+              className={`flex items-center gap-1 ${isTeacherSpeaking ? 'border-destructive' : 'border-primary'}`}
               onClick={isTeacherSpeaking ? stopSpeaking : () => {
-                const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
+                const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai' && !m.isProcessing);
                 if (lastAiMessage) {
-                  speakMessage(lastAiMessage.content);
+                  speakMessage(lastAiMessage.content, lastAiMessage.id);
                 }
               }}
+              disabled={isProcessing || (messages.length <= 1 && !isTeacherSpeaking)}
             >
               {isTeacherSpeaking ? (
                 <>
-                  <Pause className="h-4 w-4 text-primary" />
+                  <Pause className="h-4 w-4 text-destructive" />
                   Stop Speaking
                 </>
               ) : (
                 <>
-                  <Volume2 className="h-4 w-4 text-primary" />
-                  Speak Last Message
+                  <Play className="h-4 w-4 text-primary" />
+                  Speak Last Response
                 </>
               )}
             </Button>
@@ -276,7 +270,15 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
         <div className="flex-grow overflow-hidden bg-card/50 rounded-lg border shadow-sm">
           <MessageList 
             messages={messages}
-            speakMessage={speakMessage}
+            speakMessage={(text) => {
+              const message = messages.find(m => m.content === text);
+              if (message) {
+                speakMessage(text, message.id);
+              } else {
+                speakMessage(text);
+              }
+            }}
+            stopSpeaking={stopSpeaking}
             isTeacherSpeaking={isTeacherSpeaking}
           />
         </div>
@@ -290,6 +292,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
               size="sm"
               className="flex items-center gap-1"
               onClick={toggleListening}
+              disabled={isProcessing}
             >
               {isListening ? (
                 <>
@@ -309,16 +312,17 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
               size="sm"
               className="flex items-center gap-1"
               onClick={isTeacherSpeaking ? stopSpeaking : () => {
-                const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
+                const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai' && !m.isProcessing);
                 if (lastAiMessage) {
-                  speakMessage(lastAiMessage.content);
+                  speakMessage(lastAiMessage.content, lastAiMessage.id);
                 }
               }}
+              disabled={isProcessing || (messages.length <= 1 && !isTeacherSpeaking)}
             >
               {isTeacherSpeaking ? (
                 <>
                   <Pause className="h-4 w-4" /> 
-                  Pause AI Speaking
+                  Stop AI Speaking
                 </>
               ) : (
                 <>

@@ -5,6 +5,7 @@ export interface Message {
   sender: 'user' | 'ai';
   timestamp: Date;
   isProcessing?: boolean;
+  isSpeaking?: boolean;
 }
 
 export interface VirtualTeacherProps {

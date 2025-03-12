@@ -1,15 +1,18 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { audioService } from '@/services/audioService';
 
 export function useSpeechServices() {
   const [isListening, setIsListening] = useState(false);
   const [isTeacherSpeaking, setIsTeacherSpeaking] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
+  const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const speechCallbackRef = useRef<((text: string) => void) | null>(null);
   const { toast } = useToast();
+  const processingRef = useRef(false);
 
   // Define stopListening first since it's used in other functions
   const stopListening = useCallback(() => {
@@ -26,7 +29,14 @@ export function useSpeechServices() {
 
   // Start speech recognition
   const startListening = useCallback(() => {
-    if (!recognitionRef.current) return;
+    if (!recognitionRef.current) {
+      toast({
+        title: "Speech Recognition Not Available",
+        description: "Your browser doesn't support speech recognition. Please use Chrome.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       recognitionRef.current.start();
@@ -51,69 +61,86 @@ export function useSpeechServices() {
     }
   }, [isListening, startListening, stopListening]);
 
+  // Stop AI speaking
+  const stopSpeaking = useCallback(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsTeacherSpeaking(false);
+      setCurrentMessageId(null);
+    }
+  }, []);
+
   // Speak a message
-  const speakMessage = useCallback((text: string) => {
+  const speakMessage = useCallback((text: string, messageId?: string) => {
     if ('speechSynthesis' in window) {
       // If already speaking, cancel it
       if (isTeacherSpeaking) {
         window.speechSynthesis.cancel();
         setIsTeacherSpeaking(false);
-        return;
+        setCurrentMessageId(null);
+        
+        // If we're trying to speak the same message that was just canceled, return
+        if (messageId && messageId === currentMessageId) {
+          return;
+        }
       }
       
-      // Create a new utterance
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.95; // Slightly slower than default
-      utterance.pitch = 1.0;
-      
-      // Find a good voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => 
-        voice.name.includes('Female') || 
-        voice.name.includes('Samantha') || 
-        voice.name.includes('Google UK')
-      );
-      
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+      // Set the current message ID
+      if (messageId) {
+        setCurrentMessageId(messageId);
       }
       
-      // Set up event handlers
-      utterance.onstart = () => {
+      // Use the improved audioService to speak
+      try {
         setIsTeacherSpeaking(true);
-        // Pause listening while speaking to avoid feedback loops
+        
+        // If we're listening, temporarily stop
         if (isListening) {
           stopListening();
         }
-      };
-      
-      utterance.onend = () => {
-        setIsTeacherSpeaking(false);
-        // Resume listening after a short delay
-        setTimeout(() => {
+        
+        audioService.speak(text, {
+          rate: 0.95,
+          pitch: 1.0,
+          volume: 1.0
+        }).then(() => {
+          // Speech completed successfully
+          setIsTeacherSpeaking(false);
+          setCurrentMessageId(null);
+          
+          // Resume listening after a short delay
+          setTimeout(() => {
+            if (!isListening) {
+              startListening();
+            }
+          }, 500);
+        }).catch((error) => {
+          console.error("Speech synthesis error:", error);
+          setIsTeacherSpeaking(false);
+          setCurrentMessageId(null);
+          
+          toast({
+            title: "Speech Error",
+            description: "There was an error with text-to-speech. Please try again.",
+            variant: "destructive"
+          });
+          
+          // Resume listening
           if (!isListening) {
             startListening();
           }
-        }, 300);
-      };
-      
-      utterance.onerror = () => {
+        });
+      } catch (error) {
+        console.error("Speech synthesis setup error:", error);
         setIsTeacherSpeaking(false);
+        setCurrentMessageId(null);
+        
         toast({
           title: "Speech Error",
-          description: "There was an error with text-to-speech. Please try again.",
+          description: "Failed to start text-to-speech. Please try again.",
           variant: "destructive"
         });
-        
-        // Resume listening
-        if (!isListening) {
-          startListening();
-        }
-      };
-      
-      // Speak the text
-      window.speechSynthesis.speak(utterance);
+      }
     } else {
       toast({
         title: "Text-to-Speech Not Supported",
@@ -121,23 +148,18 @@ export function useSpeechServices() {
         variant: "destructive"
       });
     }
-  }, [isTeacherSpeaking, isListening, stopListening, startListening, toast]);
-
-  // Stop AI speaking
-  const stopSpeaking = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      setIsTeacherSpeaking(false);
-    }
-  }, []);
+  }, [isTeacherSpeaking, isListening, currentMessageId, stopListening, startListening, toast]);
 
   // Register a callback for speech recognition results
   const registerSpeechCallback = useCallback((callback: (text: string) => void) => {
     speechCallbackRef.current = callback;
   }, []);
 
-  // Initialize speech recognition
+  // Initialize speech recognition - fixed to avoid infinite loops
   useEffect(() => {
+    // Only initialize once
+    if (recognitionRef.current) return;
+    
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       // @ts-ignore
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -207,11 +229,17 @@ export function useSpeechServices() {
           
           // Process the complete utterance with callback if available
           const finalTranscript = transcript.trim();
-          if (speechCallbackRef.current) {
-            speechCallbackRef.current(finalTranscript);
+          if (speechCallbackRef.current && !processingRef.current) {
+            processingRef.current = true;
+            
+            // Small delay to debounce multiple recognitions
+            setTimeout(() => {
+              if (speechCallbackRef.current) {
+                speechCallbackRef.current(finalTranscript);
+              }
+              processingRef.current = false;
+            }, 300);
           }
-          
-          return finalTranscript;
         }
       };
     } else {
@@ -223,6 +251,7 @@ export function useSpeechServices() {
     }
     
     return () => {
+      // Clean up on unmount
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -234,6 +263,11 @@ export function useSpeechServices() {
       if (speechTimeoutRef.current) {
         clearTimeout(speechTimeoutRef.current);
       }
+      
+      // Also cancel any ongoing speech
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, [toast, isListening, stopListening, startListening]);
 
@@ -241,6 +275,7 @@ export function useSpeechServices() {
     isListening,
     isTeacherSpeaking,
     currentTranscript,
+    currentMessageId,
     startListening,
     stopListening,
     toggleListening,

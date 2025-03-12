@@ -13,8 +13,8 @@ interface RecordPronunciationProps {
 }
 
 interface PronunciationFeedback {
-  text: string;
   score: number;
+  feedback: string;
   correctSounds: string[];
   incorrectSounds: string[];
   tips: string[];

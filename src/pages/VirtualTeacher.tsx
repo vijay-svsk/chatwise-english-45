@@ -26,8 +26,8 @@ const VirtualTeacherPage = () => {
             </p>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="col-span-2">
-                <VirtualTeacher />
+              <div className="lg:col-span-2">
+                <VirtualTeacher initialGreeting="Hello! I'm your interactive AI English teacher. I can see you and help you learn English. What would you like to know today?" />
               </div>
               
               <div className="space-y-6">
@@ -81,7 +81,7 @@ const VirtualTeacherPage = () => {
                     
                     <div className="flex gap-3">
                       <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">4</div>
-                      <p className="text-sm">Continue the conversation by asking follow-up questions</p>
+                      <p className="text-sm">The AI teacher avatar will animate while speaking to create a more interactive experience</p>
                     </div>
                   </CardContent>
                 </Card>

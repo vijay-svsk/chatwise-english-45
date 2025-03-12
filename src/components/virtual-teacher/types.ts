@@ -10,3 +10,8 @@ export interface Message {
 export interface VirtualTeacherProps {
   initialGreeting?: string;
 }
+
+export interface TeacherAvatarProps {
+  isTeacherSpeaking: boolean;
+  teacherImage?: string;
+}

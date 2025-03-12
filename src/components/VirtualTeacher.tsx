@@ -7,6 +7,7 @@ import { geminiService } from '@/services/geminiService';
 import { useToast } from '@/hooks/use-toast';
 import MessageList from './virtual-teacher/MessageList';
 import MessageInput from './virtual-teacher/MessageInput';
+import TeacherAvatar from './virtual-teacher/TeacherAvatar';
 import { Message, VirtualTeacherProps } from './virtual-teacher/types';
 import { useSpeechServices } from './virtual-teacher/SpeechService';
 
@@ -118,7 +119,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
   };
 
   return (
-    <Card className="w-full h-[600px] flex flex-col glass-panel">
+    <Card className="w-full h-[700px] flex flex-col glass-panel">
       <CardHeader className="pb-2 border-b">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2 text-xl font-display">
@@ -133,12 +134,16 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
         </div>
       </CardHeader>
       
-      <CardContent className="flex-grow overflow-hidden p-0">
-        <MessageList 
-          messages={messages}
-          speakMessage={speakMessage}
-          isTeacherSpeaking={isTeacherSpeaking}
-        />
+      <CardContent className="flex-grow overflow-auto p-4 flex flex-col">
+        <TeacherAvatar isTeacherSpeaking={isTeacherSpeaking} />
+        
+        <div className="flex-grow overflow-hidden bg-card/50 rounded-lg border shadow-sm">
+          <MessageList 
+            messages={messages}
+            speakMessage={speakMessage}
+            isTeacherSpeaking={isTeacherSpeaking}
+          />
+        </div>
       </CardContent>
       
       <CardFooter className="p-3 border-t mt-auto">

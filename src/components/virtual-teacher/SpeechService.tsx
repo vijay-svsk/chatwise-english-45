@@ -60,7 +60,8 @@ export function useSpeechServices() {
           }
           
           if (transcript) {
-            setInputText(prev => prev + ' ' + transcript);
+            // Fixed: Now properly setting the text instead of trying to modify it functionally
+            setInputText(transcript.trim());
           }
         };
         

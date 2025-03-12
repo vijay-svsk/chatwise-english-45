@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,8 @@ import {
   BookText,
   Trophy,
   Gamepad2,
-  GraduationCap
+  GraduationCap,
+  SpeakerWaveform
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -63,6 +65,17 @@ const Sidebar = () => {
           >
             <Mic className="h-5 w-5" />
             <span>Speaking Practice</span>
+          </Link>
+          
+          <Link
+            to="/word-pronunciation"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",
+              location.pathname === "/word-pronunciation" && "bg-muted text-foreground"
+            )}
+          >
+            <SpeakerWaveform className="h-5 w-5" />
+            <span>Word Pronunciation</span>
           </Link>
           
           <Link

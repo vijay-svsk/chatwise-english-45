@@ -23,6 +23,7 @@ import VirtualTeacher from "./pages/VirtualTeacher";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import WritingPractice from "./pages/WritingPractice";
+import WordPronunciation from "./pages/WordPronunciation";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,7 @@ function App() {
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/conversation" element={<Conversation />} />
             <Route path="/virtual-teacher" element={<VirtualTeacher />} />
+            <Route path="/word-pronunciation" element={<WordPronunciation />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Search, BookOpen, Plus, Check, X, Bookmark, Volume2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { dictionaryService, DictionaryEntry } from '@/services/dictionaryService';
+import { audioService } from '@/services/audioService';
 import { useToast } from '@/hooks/use-toast';
 
 interface VocabularyWord {

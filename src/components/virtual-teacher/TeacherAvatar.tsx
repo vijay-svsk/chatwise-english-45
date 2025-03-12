@@ -5,19 +5,27 @@ import { Bot } from 'lucide-react';
 
 interface TeacherAvatarProps {
   isTeacherSpeaking: boolean;
+  isListening: boolean;
   teacherImage?: string;
 }
 
 const TeacherAvatar: React.FC<TeacherAvatarProps> = ({ 
   isTeacherSpeaking,
-  teacherImage = '/lovable-uploads/41ce64ba-d9ac-49a0-b439-8b2207c221a0.png'
+  isListening,
+  teacherImage = '/lovable-uploads/f89ceb72-0c39-4750-b503-e35c3a9deb90.png'
 }) => {
   return (
     <div className="flex flex-col items-center mb-4">
       <div 
-        className={`relative p-1 rounded-full ${isTeacherSpeaking ? 'animate-pulse ring-2 ring-primary' : ''}`}
+        className={`relative p-1 rounded-full transition-all duration-300 ${
+          isTeacherSpeaking 
+            ? 'animate-pulse ring-4 ring-primary' 
+            : isListening 
+              ? 'ring-4 ring-green-500' 
+              : 'ring-2 ring-primary/40'
+        }`}
       >
-        <Avatar className="w-48 h-48 border-2 border-primary">
+        <Avatar className="w-56 h-56 border-2 border-primary/60 shadow-lg">
           {teacherImage ? (
             <AvatarImage src={teacherImage} alt="AI Teacher" className="object-cover" />
           ) : (
@@ -28,19 +36,46 @@ const TeacherAvatar: React.FC<TeacherAvatarProps> = ({
         </Avatar>
         
         {isTeacherSpeaking && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
-            </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-40 h-40 bg-blue-300/20 rounded-full animate-pulse"></div>
+            <div className="absolute w-48 h-48 bg-blue-400/10 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
           </div>
         )}
+
+        {isListening && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-40 h-40 bg-green-300/20 rounded-full animate-pulse"></div>
+            <div className="absolute w-48 h-48 bg-green-400/10 rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        )}
+        
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+          <div className="flex space-x-2">
+            {isTeacherSpeaking && (
+              <>
+                <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className="w-3 h-3 bg-primary rounded-full animate-bounce" style={{ animationDelay: '600ms' }}></div>
+              </>
+            )}
+            {isListening && (
+              <>
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
-      <div className="text-center mt-2">
-        <h3 className="font-semibold">Virtual English Teacher</h3>
-        <p className="text-xs text-muted-foreground">
-          {isTeacherSpeaking ? 'Speaking...' : 'Ready to help'}
+      <div className="text-center mt-4">
+        <h3 className="font-display font-semibold text-xl">Virtual English Teacher</h3>
+        <p className="text-sm text-muted-foreground">
+          {isTeacherSpeaking 
+            ? 'Speaking...' 
+            : isListening 
+              ? 'Listening to you...' 
+              : 'Ready to help'}
         </p>
       </div>
     </div>

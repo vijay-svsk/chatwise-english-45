@@ -1,59 +1,96 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bot } from 'lucide-react';
+import { Bot, Volume2, VolumeX } from 'lucide-react';
 import { geminiService } from '@/services/geminiService';
 import { useToast } from '@/hooks/use-toast';
 import MessageList from './virtual-teacher/MessageList';
-import MessageInput from './virtual-teacher/MessageInput';
 import TeacherAvatar from './virtual-teacher/TeacherAvatar';
 import { Message, VirtualTeacherProps } from './virtual-teacher/types';
 import { useSpeechServices } from './virtual-teacher/SpeechService';
 
 const VirtualTeacher: React.FC<VirtualTeacherProps> = ({ 
-  initialGreeting = "Hello! I'm your AI English teacher. What English topic would you like help with today?"
+  initialGreeting = "Hello! I'm your AI English teacher. I'm listening to you, so just speak naturally and I'll help you learn English. What would you like to discuss today?",
+  autoListen = true
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const firstInteractionRef = useRef(false);
   
   const {
-    isRecording,
+    isListening,
     isTeacherSpeaking,
-    toggleMicrophone: toggleMic,
+    currentTranscript,
+    startListening,
+    stopListening,
     speakMessage,
   } = useSpeechServices();
   
   // Initialize messages with greeting
   useEffect(() => {
-    setMessages([
-      {
-        id: '1',
-        content: initialGreeting,
-        sender: 'ai',
-        timestamp: new Date()
-      }
-    ]);
-  }, [initialGreeting]);
-  
-  const toggleMicrophone = () => {
-    toggleMic(setInputText);
-  };
-  
-  const sendMessage = async () => {
-    if (!inputText.trim() || isProcessing) return;
+    const initialMessage = {
+      id: '1',
+      content: initialGreeting,
+      sender: 'ai',
+      timestamp: new Date()
+    };
     
+    setMessages([initialMessage]);
+    
+    // After a short delay, speak the greeting
+    setTimeout(() => {
+      speakMessage(initialGreeting);
+    }, 1000);
+    
+    // Start listening after the greeting is spoken
+    setTimeout(() => {
+      if (autoListen && !firstInteractionRef.current) {
+        firstInteractionRef.current = true;
+        startListening();
+      }
+    }, 1500);
+    
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, [initialGreeting, speakMessage, startListening, autoListen]);
+  
+  // Process speech when detected
+  useEffect(() => {
+    const recognitionResult = (recognitionRef as any).current?.onresult;
+    if (typeof recognitionResult === 'function') {
+      // We've received speech recognition results
+      // The original recognitionResult function will continue to be called
+      // by the SpeechRecognition API
+      const originalOnResult = recognitionResult;
+      (recognitionRef.current as any).onresult = (event: any) => {
+        const result = originalOnResult(event);
+        if (result && typeof result === 'string' && result.trim().length > 2) {
+          // We got a complete utterance
+          processUserSpeech(result);
+        }
+      };
+    }
+  }, []);
+  
+  // Process user speech and get AI response
+  const processUserSpeech = useCallback(async (speech: string) => {
+    if (!speech || speech.trim().length < 2 || isProcessing) return;
+    
+    // Add user message to the conversation
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputText.trim(),
+      content: speech.trim(),
       sender: 'user',
       timestamp: new Date()
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setInputText('');
     setIsProcessing(true);
     
     // Add a placeholder for the AI response with loading state
@@ -69,37 +106,45 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     try {
       // Get response from Gemini API
       const response = await geminiService.generateText({
-        prompt: `As a helpful and encouraging English teacher, please respond to this student question or statement in a clear and helpful way: "${userMessage.content}"`,
+        prompt: `As a helpful and encouraging English teacher, please respond to this student in a clear, conversational and helpful way. Focus on helping them learn English: "${speech.trim()}"`,
         temperature: 0.7,
         maxTokens: 500
       });
       
       // Update the AI message with the actual response
+      const aiResponse = response.text;
       setMessages(prev => prev.map(msg => {
         if (msg.id === aiMessageId) {
           return {
             ...msg,
-            content: response.text,
+            content: aiResponse,
             isProcessing: false
           };
         }
         return msg;
       }));
+      
+      // Speak the response
+      speakMessage(aiResponse);
       
     } catch (error) {
       console.error('Error getting AI response:', error);
       
       // Update the AI message with an error response
+      const errorMessage = "I'm sorry, I'm having trouble understanding. Could you repeat that?";
       setMessages(prev => prev.map(msg => {
         if (msg.id === aiMessageId) {
           return {
             ...msg,
-            content: "I'm sorry, I'm having trouble responding right now. Please try again later.",
+            content: errorMessage,
             isProcessing: false
           };
         }
         return msg;
       }));
+      
+      // Speak the error message
+      speakMessage(errorMessage);
       
       toast({
         title: "Error",
@@ -109,33 +154,82 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  }, [isProcessing, speakMessage, toast]);
+
+  // Show current transcript as it's being processed
+  useEffect(() => {
+    if (currentTranscript && currentTranscript.length > 0 && isListening) {
+      // Update the last message if it's a user message and still being processed
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.sender === 'user' && lastMessage.isProcessing) {
+        setMessages(prev => 
+          prev.map((msg, idx) => 
+            idx === prev.length - 1 ? { ...msg, content: currentTranscript } : msg
+          )
+        );
+      } else {
+        // Add a new user message for the current transcript
+        setMessages(prev => [...prev, {
+          id: `transcript-${Date.now()}`,
+          content: currentTranscript,
+          sender: 'user',
+          timestamp: new Date(),
+          isProcessing: true
+        }]);
+      }
+      
+      // Set a timeout to process this speech after a pause
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+      
+      messageTimeoutRef.current = setTimeout(() => {
+        if (currentTranscript.trim().length > 3) {
+          processUserSpeech(currentTranscript);
+        }
+      }, 2000); // Wait for 2 seconds of silence before processing
     }
-  };
+  }, [currentTranscript, isListening, messages, processUserSpeech]);
 
   return (
-    <Card className="w-full h-[700px] flex flex-col glass-panel">
+    <Card className="w-full h-[700px] flex flex-col glass-panel overflow-hidden">
       <CardHeader className="pb-2 border-b">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2 text-xl font-display">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <Bot className="h-5 w-5 text-primary-foreground" />
             </div>
-            AI English Teacher
+            Interactive AI English Teacher
             {isTeacherSpeaking && (
-              <Badge variant="outline" className="animate-pulse">Speaking</Badge>
+              <Badge variant="outline" className="animate-pulse bg-primary/10">Speaking</Badge>
+            )}
+            {isListening && !isTeacherSpeaking && (
+              <Badge variant="outline" className="animate-pulse bg-green-500/10 text-green-500">Listening</Badge>
             )}
           </CardTitle>
+          <div className="flex items-center gap-2">
+            {isTeacherSpeaking ? (
+              <Volume2 className="h-5 w-5 text-primary animate-pulse" />
+            ) : (
+              <VolumeX className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
         </div>
       </CardHeader>
       
       <CardContent className="flex-grow overflow-auto p-4 flex flex-col">
-        <TeacherAvatar isTeacherSpeaking={isTeacherSpeaking} />
+        <div className="flex flex-col items-center justify-center mb-4">
+          <TeacherAvatar 
+            isTeacherSpeaking={isTeacherSpeaking} 
+            isListening={isListening && !isTeacherSpeaking}
+          />
+          
+          {currentTranscript && isListening && !isTeacherSpeaking && (
+            <div className="mt-2 px-4 py-2 bg-green-500/10 text-green-800 dark:text-green-300 rounded-full animate-pulse max-w-[80%] text-center">
+              {currentTranscript}
+            </div>
+          )}
+        </div>
         
         <div className="flex-grow overflow-hidden bg-card/50 rounded-lg border shadow-sm">
           <MessageList 
@@ -147,15 +241,20 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
       </CardContent>
       
       <CardFooter className="p-3 border-t mt-auto">
-        <MessageInput 
-          inputText={inputText}
-          setInputText={setInputText}
-          sendMessage={sendMessage}
-          toggleMicrophone={toggleMicrophone}
-          isRecording={isRecording}
-          isProcessing={isProcessing}
-          handleKeyDown={handleKeyDown}
-        />
+        <div className="w-full text-center">
+          {isListening ? (
+            <p className="text-sm text-muted-foreground">
+              I'm listening to you. Just speak naturally and I'll respond.
+              {currentTranscript && (
+                <span className="block mt-1 font-medium">"...{currentTranscript.slice(-30)}"</span>
+              )}
+            </p>
+          ) : isTeacherSpeaking ? (
+            <p className="text-sm text-muted-foreground">I'm speaking. Please wait...</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Click the avatar to start speaking with me again.</p>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

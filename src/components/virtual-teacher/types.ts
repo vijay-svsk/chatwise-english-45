@@ -9,9 +9,11 @@ export interface Message {
 
 export interface VirtualTeacherProps {
   initialGreeting?: string;
+  autoListen?: boolean;
 }
 
 export interface TeacherAvatarProps {
   isTeacherSpeaking: boolean;
+  isListening: boolean;
   teacherImage?: string;
 }

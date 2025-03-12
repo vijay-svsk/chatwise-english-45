@@ -31,7 +31,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
   
   // Initialize messages with greeting
   useEffect(() => {
-    const initialMessage = {
+    const initialMessage: Message = {
       id: '1',
       content: initialGreeting,
       sender: 'ai',
@@ -62,13 +62,13 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
   
   // Process speech when detected
   useEffect(() => {
-    const recognitionResult = (recognitionRef as any).current?.onresult;
-    if (typeof recognitionResult === 'function') {
+    const { onresult } = useSpeechServices();
+    if (typeof onresult === 'function') {
       // We've received speech recognition results
-      // The original recognitionResult function will continue to be called
+      // The original onresult function will continue to be called
       // by the SpeechRecognition API
-      const originalOnResult = recognitionResult;
-      (recognitionRef.current as any).onresult = (event: any) => {
+      const originalOnResult = onresult;
+      onresult = (event: any) => {
         const result = originalOnResult(event);
         if (result && typeof result === 'string' && result.trim().length > 2) {
           // We got a complete utterance

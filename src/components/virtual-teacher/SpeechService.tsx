@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -217,5 +216,7 @@ export function useSpeechServices() {
     stopListening,
     toggleListening,
     speakMessage,
+    onresult: recognitionRef.current?.onresult,
+    recognitionRef,
   };
 }

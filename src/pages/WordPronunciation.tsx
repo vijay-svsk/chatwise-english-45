@@ -1,17 +1,16 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Mic, Volume2, Search, StopCircle, Loader2 } from 'lucide-react';
+import { Mic, Volume2, Search, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { geminiService } from '@/services/geminiService';
 import { audioService } from '@/services/audioService';
 import WordBreakdown from '@/components/word-pronunciation/WordBreakdown';
 import RecordPronunciation from '@/components/word-pronunciation/RecordPronunciation';
 import WordDetails from '@/components/word-pronunciation/WordDetails';
+import { dictionaryService, DictionaryEntry } from '@/services/dictionaryService';
 
 // Mock user data - would come from auth in a real app
 const mockUser = {
@@ -47,66 +46,50 @@ const WordPronunciation = () => {
     setFeedbackData(null);
     
     try {
-      // Generate a prompt for Gemini that asks for word details
-      const prompt = `
-      I need detailed information about the English word "${searchTerm}". Please provide:
-      1. The correct phonetic pronunciation
-      2. A breakdown of syllables (with hyphens)
-      3. The primary meaning of the word
-      4. The part of speech (grammar category)
-      5. The opposite/antonym (if applicable)
-      6. The root word (if applicable)
-      7. 3-4 example sentences using the word
+      const data = await dictionaryService.getWordDefinition(searchTerm.trim());
+      const entry = data[0];
       
-      Format your response as JSON with the following structure:
-      {
-        "word": "the word",
-        "phonetic": "phonetic pronunciation",
-        "syllables": ["syl", "la", "bles"],
-        "meaning": "definition",
-        "grammar": "part of speech",
-        "opposite": "antonym if exists",
-        "rootWord": "root if exists",
-        "examples": ["example sentence 1", "example sentence 2"]
+      if (!entry) {
+        throw new Error('Word not found');
       }
-      `;
+
+      // Transform API data to our format
+      const transformedData: WordData = {
+        word: entry.word,
+        phonetic: entry.phonetic || entry.phonetics[0]?.text || '',
+        syllables: entry.word.split('').filter(char => /[aeiou]/i.test(char)), // Basic syllable detection
+        meaning: entry.meanings[0]?.definitions[0]?.definition || '',
+        grammar: entry.meanings[0]?.partOfSpeech || '',
+        examples: entry.meanings.flatMap(m => 
+          m.definitions
+            .filter(d => d.example)
+            .map(d => d.example!)
+        ).slice(0, 4),
+        opposite: entry.meanings[0]?.definitions[0]?.antonyms?.[0],
+        rootWord: entry.origin?.split(':')[0] || undefined
+      };
+
+      setWordData(transformedData);
       
-      const response = await geminiService.generateText({
-        prompt,
-        temperature: 0.2,
-        maxTokens: 500
-      });
-      
-      // Parse the JSON response
-      try {
-        // Extract the JSON part from the response
-        const jsonMatch = response.text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("No JSON found in response");
-        
-        const parsedData = JSON.parse(jsonMatch[0]);
-        setWordData(parsedData);
-        
-        // Automatically speak the word when data is loaded
-        setTimeout(() => {
-          audioService.speak(parsedData.word, {
-            rate: 0.8,
-            pitch: 1.0,
-            volume: 1.0
-          });
-        }, 500);
-      } catch (jsonError) {
-        console.error("Failed to parse JSON:", jsonError);
-        toast({
-          title: "Error",
-          description: "Could not analyze the word. Please try again.",
-          variant: "destructive"
+      // Play pronunciation if available
+      const audioUrl = entry.phonetics.find(p => p.audio)?.audio;
+      if (audioUrl) {
+        const audio = new Audio(audioUrl.startsWith('//') ? `https:${audioUrl}` : audioUrl);
+        audio.play().catch(console.error);
+      } else {
+        // Fallback to browser TTS
+        audioService.speak(entry.word, {
+          rate: 0.8,
+          pitch: 1.0,
+          volume: 1.0
         });
       }
+
     } catch (error) {
       console.error("Error fetching word data:", error);
       toast({
         title: "Error",
-        description: "Failed to get information about this word. Please try again.",
+        description: "Could not find information about this word. Please try again.",
         variant: "destructive"
       });
     } finally {

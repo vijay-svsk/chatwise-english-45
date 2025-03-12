@@ -1,21 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Search, BookOpen, Plus, Check, X, Bookmark, Volume2 } from 'lucide-react';
+import { Search, BookOpen, Plus, Check, X, Bookmark, Volume2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { dictionaryService, DictionaryEntry } from '@/services/dictionaryService';
+import { useToast } from '@/hooks/use-toast';
 
 interface VocabularyWord {
   id: string;
   word: string;
   partOfSpeech: string;
   definition: string;
-  example: string;
+  example?: string;
   pronunciation: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  audio?: string;
   isSaved?: boolean;
 }
 
@@ -132,27 +135,79 @@ const mockVocabularyLists: VocabularyList[] = [
 ];
 
 const VocabularyBuilding = () => {
-  const mockUser = {
-    name: 'Sarah Johnson',
-    email: 'sarah.j@example.com',
-    avatar: 'https://i.pravatar.cc/300?img=47'
-  };
-
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<VocabularyWord[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [savedWords, setSavedWords] = useState<VocabularyWord[]>([]);
-  const [wordLists, setWordLists] = useState<VocabularyList[]>(mockVocabularyLists);
+  const [wordLists] = useState(mockVocabularyLists);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [isFocused, setIsFocused] = useState(false);
+  const { toast } = useToast();
 
-  const filteredWords = mockWordList.filter(word => {
-    const matchesSearch = searchTerm === '' || 
-      word.word.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      word.definition.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDifficulty = selectedFilter === 'all' || word.difficulty === selectedFilter;
-    
-    return matchesSearch && matchesDifficulty;
-  });
+  const getDifficulty = (word: string): 'beginner' | 'intermediate' | 'advanced' => {
+    const length = word.length;
+    if (length <= 5) return 'beginner';
+    if (length <= 8) return 'intermediate';
+    return 'advanced';
+  };
+
+  useEffect(() => {
+    const searchWords = async () => {
+      if (!searchTerm.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const data = await dictionaryService.getWordDefinition(searchTerm.trim());
+        const words: VocabularyWord[] = data.map((entry): VocabularyWord => ({
+          id: entry.word,
+          word: entry.word,
+          partOfSpeech: entry.meanings[0]?.partOfSpeech || '',
+          definition: entry.meanings[0]?.definitions[0]?.definition || '',
+          example: entry.meanings[0]?.definitions[0]?.example,
+          pronunciation: entry.phonetic || entry.phonetics[0]?.text || '',
+          audio: entry.phonetics.find(p => p.audio)?.audio,
+          difficulty: getDifficulty(entry.word)
+        }));
+        setSearchResults(words);
+      } catch (error) {
+        console.error('Search error:', error);
+        toast({
+          title: "Search Error",
+          description: "Could not find the word. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchWords, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, toast]);
+
+  const playPronunciation = (word: VocabularyWord) => {
+    if (word.audio) {
+      const audioUrl = word.audio.startsWith('//') ? `https:${word.audio}` : word.audio;
+      const audio = new Audio(audioUrl);
+      audio.play().catch(() => {
+        // Fallback to browser TTS if audio URL fails
+        audioService.speak(word.word, {
+          rate: 0.9,
+          pitch: 1.0,
+          volume: 1.0
+        });
+      });
+    } else {
+      audioService.speak(word.word, {
+        rate: 0.9,
+        pitch: 1.0,
+        volume: 1.0
+      });
+    }
+  };
 
   const toggleSaveWord = (wordId: string) => {
     const word = mockWordList.find(w => w.id === wordId);
@@ -167,20 +222,9 @@ const VocabularyBuilding = () => {
     }
   };
 
-  const playPronunciation = (word: string) => {
-    // In a real implementation, this would use the Web Speech API or a TTS service
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = 'en-US';
-      window.speechSynthesis.speak(utterance);
-    } else {
-      console.log('Text-to-speech not supported in this browser');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      <Header user={mockUser} />
+      <Header />
       <Sidebar />
       
       <main className="pt-24 pb-16 pl-72 pr-6">
@@ -251,8 +295,8 @@ const VocabularyBuilding = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
-                  {filteredWords.length > 0 ? (
-                    filteredWords.map((word) => (
+                  {searchResults.length > 0 ? (
+                    searchResults.map((word) => (
                       <Card key={word.id} className="glass-panel">
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
@@ -262,7 +306,7 @@ const VocabularyBuilding = () => {
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8"
-                                onClick={() => playPronunciation(word.word)}
+                                onClick={() => playPronunciation(word)}
                               >
                                 <Volume2 className="h-4 w-4" />
                               </Button>
@@ -345,7 +389,7 @@ const VocabularyBuilding = () => {
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8"
-                                onClick={() => playPronunciation(word.word)}
+                                onClick={() => playPronunciation(word)}
                               >
                                 <Volume2 className="h-4 w-4" />
                               </Button>

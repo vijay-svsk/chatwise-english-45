@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import VirtualTeacher from '@/components/VirtualTeacher';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Toaster } from '@/components/ui/toaster';
 
 const VirtualTeacherPage = () => {
   const mockUser = {
@@ -22,7 +23,7 @@ const VirtualTeacherPage = () => {
           <section className="mb-8">
             <h1 className="text-3xl font-display font-semibold mb-2">Virtual AI Teacher</h1>
             <p className="text-muted-foreground mb-6">
-              Ask questions and get real-time assistance from your AI English teacher.
+              Ask questions and get real-time assistance from your AI English teacher. Speak naturally or type your questions.
             </p>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -31,6 +32,34 @@ const VirtualTeacherPage = () => {
               </div>
               
               <div className="space-y-6">
+                <Card className="glass-panel">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-display">How To Use</CardTitle>
+                    <CardDescription>Talk to me like a real English teacher</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">1</div>
+                      <p className="text-sm">Click the "Start Listening" button and speak naturally</p>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">2</div>
+                      <p className="text-sm">I'll listen, analyze your question and provide a helpful response</p>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">3</div>
+                      <p className="text-sm">I'll speak my responses aloud. You can stop me anytime with the "Stop Speaking" button</p>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">4</div>
+                      <p className="text-sm">Each response can be replayed by clicking the speaker icon</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
                 <Card className="glass-panel">
                   <CardHeader>
                     <CardTitle className="text-xl font-display">Suggested Topics</CardTitle>
@@ -58,38 +87,13 @@ const VirtualTeacherPage = () => {
                     </div>
                   </CardContent>
                 </Card>
-                
-                <Card className="glass-panel">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-display">Using the AI Teacher</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex gap-3">
-                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">1</div>
-                      <p className="text-sm">Type your question or tap the microphone to speak</p>
-                    </div>
-                    
-                    <div className="flex gap-3">
-                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">2</div>
-                      <p className="text-sm">The AI will analyze your question and provide a helpful response</p>
-                    </div>
-                    
-                    <div className="flex gap-3">
-                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">3</div>
-                      <p className="text-sm">Click the speaker icon to have the AI read its response aloud</p>
-                    </div>
-                    
-                    <div className="flex gap-3">
-                      <div className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">4</div>
-                      <p className="text-sm">The AI teacher avatar will animate while speaking to create a more interactive experience</p>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </section>
         </div>
       </main>
+      
+      <Toaster />
     </div>
   );
 };

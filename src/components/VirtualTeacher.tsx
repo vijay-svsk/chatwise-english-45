@@ -10,6 +10,7 @@ import MessageList from './virtual-teacher/MessageList';
 import TeacherAvatar from './virtual-teacher/TeacherAvatar';
 import { Message, VirtualTeacherProps } from './virtual-teacher/types';
 import { useSpeechServices } from './virtual-teacher/SpeechService';
+import { audioService } from '@/services/audioService';
 
 const VirtualTeacher: React.FC<VirtualTeacherProps> = ({ 
   initialGreeting = "Hello! I'm your AI English teacher. I'm listening to you, so just speak naturally and I'll help you learn English. What would you like to discuss today?",
@@ -59,6 +60,9 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     }]);
     
     try {
+      // Play a subtle sound to indicate processing
+      audioService.playSuccessSound();
+      
       // Get response from Gemini API
       const response = await geminiService.generateText({
         prompt: `As a helpful and encouraging English teacher, please respond to this student in a clear, conversational and helpful way. Focus on helping them learn English: "${speech.trim()}"`,
@@ -79,8 +83,10 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
         return msg;
       }));
       
-      // Speak the response
-      speakMessage(aiResponse);
+      // Speak the response - make sure we're doing this consistently
+      setTimeout(() => {
+        speakMessage(aiResponse);
+      }, 300);
       
     } catch (error) {
       console.error('Error getting AI response:', error);
@@ -126,22 +132,32 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     registerSpeechCallback(processUserSpeech);
     
     // After a short delay, speak the greeting
-    setTimeout(() => {
-      speakMessage(initialGreeting);
+    const timer = setTimeout(() => {
+      try {
+        speakMessage(initialGreeting);
+      } catch (error) {
+        console.error('Error speaking initial greeting:', error);
+      }
     }, 1000);
     
     // Start listening after the greeting is spoken
-    setTimeout(() => {
+    const listenTimer = setTimeout(() => {
       if (autoListen && !firstInteractionRef.current) {
         firstInteractionRef.current = true;
-        startListening();
+        try {
+          startListening();
+        } catch (error) {
+          console.error('Error starting listening:', error);
+        }
       }
-    }, 1500);
+    }, 3000);
     
     return () => {
       if (messageTimeoutRef.current) {
         clearTimeout(messageTimeoutRef.current);
       }
+      clearTimeout(timer);
+      clearTimeout(listenTimer);
     };
   }, [initialGreeting, speakMessage, startListening, autoListen, registerSpeechCallback, processUserSpeech]);
 
@@ -176,7 +192,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
         if (currentTranscript.trim().length > 3) {
           processUserSpeech(currentTranscript);
         }
-      }, 2000); // Wait for 2 seconds of silence before processing
+      }, 1500); // Reduced from 2000ms to 1500ms for faster response
     }
   }, [currentTranscript, isListening, messages, processUserSpeech]);
 
@@ -200,7 +216,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
             <Button 
               variant="outline" 
               size="sm" 
-              className="flex items-center gap-1"
+              className={`flex items-center gap-1 ${isListening ? 'border-green-500' : ''}`}
               onClick={toggleListening}
             >
               {isListening ? (
@@ -219,7 +235,7 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center gap-1"
+              className={`flex items-center gap-1 ${isTeacherSpeaking ? 'border-primary' : ''}`}
               onClick={isTeacherSpeaking ? stopSpeaking : () => {
                 const lastAiMessage = [...messages].reverse().find(m => m.sender === 'ai');
                 if (lastAiMessage) {

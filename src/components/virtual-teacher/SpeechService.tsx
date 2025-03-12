@@ -171,7 +171,12 @@ export function useSpeechServices() {
       recognitionRef.current.onend = () => {
         // Automatically restart if we're still supposed to be listening
         if (isListening) {
-          recognitionRef.current.start();
+          try {
+            recognitionRef.current.start();
+          } catch (error) {
+            console.error('Failed to restart speech recognition:', error);
+            setIsListening(false);
+          }
         }
       };
 
@@ -219,7 +224,11 @@ export function useSpeechServices() {
     
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.error('Error stopping recognition on cleanup:', error);
+        }
       }
       
       if (speechTimeoutRef.current) {

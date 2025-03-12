@@ -3,6 +3,7 @@ class AudioService {
   private static instance: AudioService;
   private audioContext: AudioContext | null = null;
   private voices: SpeechSynthesisVoice[] = [];
+  private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   private constructor() {
     this.initAudioContext();
@@ -45,7 +46,38 @@ class AudioService {
     return this.voices;
   }
 
-  // Speak text using Web Speech API
+  // Find best English voice available
+  getBestEnglishVoice(): SpeechSynthesisVoice | null {
+    if (this.voices.length === 0) {
+      this.voices = window.speechSynthesis.getVoices();
+    }
+    
+    // Check for specific high-quality voices first
+    const preferredVoices = [
+      'Google UK English Female',
+      'Microsoft Zira',
+      'Samantha',
+      'Karen'
+    ];
+    
+    for (const voiceName of preferredVoices) {
+      const match = this.voices.find(v => v.name.includes(voiceName));
+      if (match) return match;
+    }
+    
+    // Fall back to any female English voice
+    const femaleEnglishVoice = this.voices.find(v => 
+      v.lang.includes('en') && 
+      (v.name.includes('Female') || v.name.toLowerCase().includes('female'))
+    );
+    
+    if (femaleEnglishVoice) return femaleEnglishVoice;
+    
+    // Fall back to any English voice
+    return this.voices.find(v => v.lang.includes('en')) || null;
+  }
+
+  // Speak text using Web Speech API with enhanced settings
   speak(text: string, options: {
     voice?: string, 
     rate?: number,
@@ -59,9 +91,10 @@ class AudioService {
       }
 
       // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
+      this.stopSpeaking();
 
       const utterance = new SpeechSynthesisUtterance(text);
+      this.currentUtterance = utterance;
       
       // Set voice if specified
       if (options.voice) {
@@ -70,28 +103,60 @@ class AudioService {
           utterance.voice = selectedVoice;
         }
       } else {
-        // Default to first English voice
-        const englishVoice = this.voices.find(v => v.lang.includes('en-'));
-        if (englishVoice) {
-          utterance.voice = englishVoice;
+        // Default to best English voice
+        const bestVoice = this.getBestEnglishVoice();
+        if (bestVoice) {
+          utterance.voice = bestVoice;
         }
       }
 
       // Set other options
-      utterance.rate = options.rate ?? 1.0;
+      utterance.rate = options.rate ?? 0.95; // Slightly slower for better clarity
       utterance.pitch = options.pitch ?? 1.0;
       utterance.volume = options.volume ?? 1.0;
 
       utterance.onend = () => {
+        this.currentUtterance = null;
         resolve();
       };
 
       utterance.onerror = (event) => {
+        this.currentUtterance = null;
         reject(new Error(`Speech synthesis error: ${event.error}`));
       };
 
       window.speechSynthesis.speak(utterance);
+      
+      // Fix for Chrome bug where speech sometimes stops
+      // Create a watchdog timer to restart speech if it stalls
+      this.startSpeechWatchdog();
     });
+  }
+  
+  // Fix for Chrome bug where speech synthesis sometimes stalls
+  private startSpeechWatchdog() {
+    const watchdog = setInterval(() => {
+      // If we're supposed to be speaking but synthesis is paused or has stopped
+      if (this.currentUtterance && !window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        window.speechSynthesis.speak(this.currentUtterance);
+      } else if (!this.currentUtterance) {
+        // If we're done speaking, clear the interval
+        clearInterval(watchdog);
+      }
+    }, 5000);
+    
+    // Clear watchdog after 30 seconds to prevent leaks
+    setTimeout(() => clearInterval(watchdog), 30000);
+  }
+
+  // Stop speaking
+  stopSpeaking() {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      this.currentUtterance = null;
+    }
   }
 
   // Play a sound file
@@ -161,6 +226,26 @@ class AudioService {
     
     oscillator.start();
     oscillator.stop(this.audioContext.currentTime + 0.5);
+  }
+  
+  // Play a subtle attention sound
+  playAttentionSound() {
+    if (!this.audioContext) return;
+    
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
+    
+    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+    
+    oscillator.start();
+    oscillator.stop(this.audioContext.currentTime + 0.3);
   }
 }
 

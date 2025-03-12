@@ -1,81 +1,98 @@
 
 import React from 'react';
-import { Bot, Volume2, Pause } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Message } from './types';
+import { Bot, User, Volume2, Pause } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MessageBubbleProps {
   message: Message;
   speakMessage: (text: string) => void;
-  isTeacherSpeaking: boolean;
+  isCurrentlySpeaking: boolean;
+  stopSpeaking: () => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ 
-  message, 
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
   speakMessage,
-  isTeacherSpeaking
+  isCurrentlySpeaking,
+  stopSpeaking
 }) => {
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isAi = message.sender === 'ai';
+  const isUser = message.sender === 'user';
+  
+  const handleSpeakToggle = () => {
+    if (isCurrentlySpeaking) {
+      stopSpeaking();
+    } else {
+      speakMessage(message.content);
+    }
   };
-
-  const handleSpeakClick = () => {
-    speakMessage(message.content);
-  };
-
+  
   return (
     <div 
-      className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} items-start gap-2`}
+      className={cn(
+        "flex gap-2 items-start",
+        isUser ? "justify-end" : "justify-start"
+      )}
     >
-      {message.sender === 'ai' && (
-        <div className="w-8 h-8 mt-1 rounded-full bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
-          <Bot className="h-4 w-4" />
+      {isAi && (
+        <div className="rounded-full w-8 h-8 bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+          <Bot className="h-4 w-4 text-primary-foreground" />
         </div>
       )}
       
-      <div className={`max-w-[80%] flex flex-col`}>
-        <div className={`rounded-lg p-3 ${
-          message.sender === 'user' 
-            ? 'bg-primary text-primary-foreground self-end' 
-            : 'bg-secondary text-secondary-foreground'
-        }`}>
-          {message.isProcessing ? (
-            <div className="flex gap-1 items-center h-6 px-2">
-              <div className="w-2 h-2 rounded-full bg-current opacity-75 animate-bounce"></div>
-              <div className="w-2 h-2 rounded-full bg-current opacity-75 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-current opacity-75 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-            </div>
+      <div 
+        className={cn(
+          "px-4 py-3 rounded-xl max-w-[80%]",
+          isUser 
+            ? "bg-secondary text-secondary-foreground" 
+            : "bg-primary/10 text-foreground",
+          message.isProcessing ? "animate-pulse" : ""
+        )}
+      >
+        {message.isProcessing ? (
+          message.content ? (
+            <p className="text-muted-foreground italic">{message.content}</p>
           ) : (
-            message.content
-          )}
-        </div>
-        
-        <div className={`text-xs text-muted-foreground mt-1 flex items-center gap-2 ${
-          message.sender === 'user' ? 'justify-end' : 'justify-start'
-        }`}>
-          <span>{formatTime(message.timestamp)}</span>
-          
-          {message.sender === 'ai' && !message.isProcessing && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-5 w-5 rounded-full"
-              onClick={handleSpeakClick}
-              title={isTeacherSpeaking ? "AI is speaking" : "Speak this message"}
-            >
-              {isTeacherSpeaking ? (
-                <Pause className="h-3 w-3" />
-              ) : (
-                <Volume2 className="h-3 w-3" />
-              )}
-            </Button>
-          )}
-        </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[250px]" />
+              <Skeleton className="h-4 w-[200px]" />
+              <Skeleton className="h-4 w-[150px]" />
+            </div>
+          )
+        ) : (
+          <div>
+            <p className="whitespace-pre-wrap">{message.content}</p>
+            
+            {isAi && (
+              <div className="mt-2 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8 p-0 rounded-full", 
+                    isCurrentlySpeaking && "bg-primary/20"
+                  )}
+                  onClick={handleSpeakToggle}
+                  title={isCurrentlySpeaking ? "Stop speaking" : "Speak this message"}
+                >
+                  {isCurrentlySpeaking ? (
+                    <Pause className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
-      {message.sender === 'user' && (
-        <div className="w-8 h-8 mt-1 rounded-full bg-primary flex items-center justify-center text-primary-foreground flex-shrink-0">
-          <span className="text-xs font-semibold">You</span>
+      {isUser && (
+        <div className="rounded-full w-8 h-8 bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
+          <User className="h-4 w-4" />
         </div>
       )}
     </div>

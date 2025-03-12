@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,56 +26,8 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
     startListening,
     stopListening,
     speakMessage,
+    registerSpeechCallback
   } = useSpeechServices();
-  
-  // Initialize messages with greeting
-  useEffect(() => {
-    const initialMessage: Message = {
-      id: '1',
-      content: initialGreeting,
-      sender: 'ai',
-      timestamp: new Date()
-    };
-    
-    setMessages([initialMessage]);
-    
-    // After a short delay, speak the greeting
-    setTimeout(() => {
-      speakMessage(initialGreeting);
-    }, 1000);
-    
-    // Start listening after the greeting is spoken
-    setTimeout(() => {
-      if (autoListen && !firstInteractionRef.current) {
-        firstInteractionRef.current = true;
-        startListening();
-      }
-    }, 1500);
-    
-    return () => {
-      if (messageTimeoutRef.current) {
-        clearTimeout(messageTimeoutRef.current);
-      }
-    };
-  }, [initialGreeting, speakMessage, startListening, autoListen]);
-  
-  // Process speech when detected
-  useEffect(() => {
-    const { onresult } = useSpeechServices();
-    if (typeof onresult === 'function') {
-      // We've received speech recognition results
-      // The original onresult function will continue to be called
-      // by the SpeechRecognition API
-      const originalOnResult = onresult;
-      onresult = (event: any) => {
-        const result = originalOnResult(event);
-        if (result && typeof result === 'string' && result.trim().length > 2) {
-          // We got a complete utterance
-          processUserSpeech(result);
-        }
-      };
-    }
-  }, []);
   
   // Process user speech and get AI response
   const processUserSpeech = useCallback(async (speech: string) => {
@@ -155,6 +106,40 @@ const VirtualTeacher: React.FC<VirtualTeacherProps> = ({
       setIsProcessing(false);
     }
   }, [isProcessing, speakMessage, toast]);
+  
+  // Initialize messages with greeting and register speech callback
+  useEffect(() => {
+    const initialMessage: Message = {
+      id: '1',
+      content: initialGreeting,
+      sender: 'ai',
+      timestamp: new Date()
+    };
+    
+    setMessages([initialMessage]);
+    
+    // Register the speech callback
+    registerSpeechCallback(processUserSpeech);
+    
+    // After a short delay, speak the greeting
+    setTimeout(() => {
+      speakMessage(initialGreeting);
+    }, 1000);
+    
+    // Start listening after the greeting is spoken
+    setTimeout(() => {
+      if (autoListen && !firstInteractionRef.current) {
+        firstInteractionRef.current = true;
+        startListening();
+      }
+    }, 1500);
+    
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, [initialGreeting, speakMessage, startListening, autoListen, registerSpeechCallback, processUserSpeech]);
 
   // Show current transcript as it's being processed
   useEffect(() => {

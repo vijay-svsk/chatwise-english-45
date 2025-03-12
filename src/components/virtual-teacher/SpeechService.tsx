@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -7,6 +8,7 @@ export function useSpeechServices() {
   const [currentTranscript, setCurrentTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const speechCallbackRef = useRef<((text: string) => void) | null>(null);
   const { toast } = useToast();
 
   // Initialize speech recognition
@@ -47,30 +49,7 @@ export function useSpeechServices() {
           recognitionRef.current.start();
         }
       };
-    } else {
-      toast({
-        title: "Speech Recognition Not Supported",
-        description: "Your browser doesn't support speech recognition. Please use a modern browser like Chrome.",
-        variant: "destructive"
-      });
-    }
-    
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      
-      if (speechTimeoutRef.current) {
-        clearTimeout(speechTimeoutRef.current);
-      }
-    };
-  }, [toast, isListening]);
 
-  // Start speech recognition
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-    
-    try {
       // Set up the result handler
       recognitionRef.current.onresult = (event: any) => {
         let transcript = '';
@@ -96,11 +75,44 @@ export function useSpeechServices() {
             speechTimeoutRef.current = null;
           }
           
-          // Process the complete utterance
-          return transcript.trim();
+          // Process the complete utterance with callback if available
+          const finalTranscript = transcript.trim();
+          if (speechCallbackRef.current) {
+            speechCallbackRef.current(finalTranscript);
+          }
+          
+          return finalTranscript;
         }
       };
+    } else {
+      toast({
+        title: "Speech Recognition Not Supported",
+        description: "Your browser doesn't support speech recognition. Please use a modern browser like Chrome.",
+        variant: "destructive"
+      });
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
       
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
+      }
+    };
+  }, [toast, isListening, stopListening]);
+
+  // Register a callback for speech recognition results
+  const registerSpeechCallback = useCallback((callback: (text: string) => void) => {
+    speechCallbackRef.current = callback;
+  }, []);
+
+  // Start speech recognition
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current) return;
+    
+    try {
       recognitionRef.current.start();
       setIsListening(true);
     } catch (error) {
@@ -216,7 +228,6 @@ export function useSpeechServices() {
     stopListening,
     toggleListening,
     speakMessage,
-    onresult: recognitionRef.current?.onresult,
-    recognitionRef,
+    registerSpeechCallback
   };
 }
